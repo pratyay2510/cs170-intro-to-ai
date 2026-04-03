@@ -254,6 +254,75 @@
       cursor: not-allowed;
     }
 
+    .speed-label-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .speed-value {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .speed-hint {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .controls input[type="range"] {
+      width: 100%;
+      height: 0.45rem;
+      margin: 0.15rem 0 0;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(10, 12, 20, 0.9);
+      border-radius: 999px;
+      border: 1px solid var(--border-glow);
+      outline: none;
+    }
+
+    .controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #5ec8f0, var(--accent));
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.45);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .controls input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.08);
+    }
+
+    .controls input[type="range"]::-moz-range-thumb {
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #5ec8f0, var(--accent));
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.45);
+      cursor: pointer;
+    }
+
+    .controls input[type="range"]:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .controls input[type="range"]:disabled::-webkit-slider-thumb {
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .btn {
       width: 100%;
       padding: 0.55rem 0.85rem;
@@ -776,6 +845,13 @@
         <button type="button" class="btn btn--dfs" id="btnDfs">Run DFS</button>
         <button type="button" class="btn btn--ucs" id="btnUcs">Run UCS</button>
         <button type="button" class="btn btn--rand" id="btnRand">Randomize state</button>
+        <label class="row" for="animSpeed">
+          <span class="speed-label-row">
+            <span>Flip animation speed <span class="speed-hint">(slow → fast)</span></span>
+            <span id="animSpeedValue" class="speed-value">480 ms</span>
+          </span>
+          <input type="range" id="animSpeed" min="100" max="1600" step="20" value="1220" aria-valuemin="100" aria-valuemax="1600" aria-valuetext="480 milliseconds per flip" />
+        </label>
       </div>
     </div>
 
@@ -794,11 +870,25 @@
   const costReadout = document.getElementById("costReadout");
   const errorEl = document.getElementById("error");
   const nInput = document.getElementById("nPancakes");
+  const animSpeedSlider = document.getElementById("animSpeed");
+  const animSpeedValue = document.getElementById("animSpeedValue");
 
   let state = [];
   let palette = {};
   let animTimer = null;
-  const STEP_MS = 480;
+
+  function getStepMs() {
+    const v = parseInt(animSpeedSlider.value, 10);
+    if (!Number.isFinite(v)) return 480;
+    const clamped = Math.min(1600, Math.max(100, v));
+    return 1700 - clamped;
+  }
+
+  function syncAnimSpeedLabel() {
+    const ms = getStepMs();
+    animSpeedValue.textContent = ms + " ms";
+    animSpeedSlider.setAttribute("aria-valuetext", ms + " milliseconds per flip");
+  }
 
   function goalTuple(n) {
     const a = [];
@@ -1062,7 +1152,7 @@
       renderStack(k);
       setReadout(pathSoFar, costSoFar);
       i++;
-      animTimer = setTimeout(step, STEP_MS);
+      animTimer = setTimeout(step, getStepMs());
     }
 
     pathReadout.textContent = "Starting…";
@@ -1105,7 +1195,9 @@
   document.getElementById("btnDfs").addEventListener("click", () => runSearch("DFS", dfs));
   document.getElementById("btnUcs").addEventListener("click", () => runSearch("UCS", ucs));
   document.getElementById("btnRand").addEventListener("click", randomize);
+  animSpeedSlider.addEventListener("input", syncAnimSpeedLabel);
 
+  syncAnimSpeedLabel();
   randomize();
 })();
   </script>

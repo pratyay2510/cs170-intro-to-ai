@@ -2,3 +2,6 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 *.log
+
+# Local-only helper (not shared in the repo)
+push.ps1
