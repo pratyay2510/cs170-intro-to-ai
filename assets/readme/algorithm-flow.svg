@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-labelledby="ftitle">
+  <title id="ftitle">From problem state to frontier expansion: BFS, DFS, UCS</title>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#38bdf8"/>
+    </marker>
+  </defs>
+  <rect width="720" height="320" fill="#0a0c12"/>
+  <text x="360" y="36" text-anchor="middle" fill="#e8edf5" font-family="system-ui,sans-serif" font-size="16" font-weight="600">How the demos relate to search</text>
+  <text x="360" y="58" text-anchor="middle" fill="#8b95a8" font-family="system-ui,sans-serif" font-size="12">Each module is a state space; algorithms differ in which frontier node they expand next</text>
+  <!-- boxes -->
+  <rect x="40" y="90" width="140" height="72" rx="10" fill="rgba(18,22,35,0.9)" stroke="rgba(56,189,248,0.35)"/>
+  <text x="110" y="122" text-anchor="middle" fill="#38bdf8" font-size="11" font-family="system-ui,sans-serif" font-weight="600">Problem state</text>
+  <text x="110" y="142" text-anchor="middle" fill="#8b95a8" font-size="10" font-family="system-ui,sans-serif">tiles / stack / grid / map</text>
+  <path d="M190 126 L250 126" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="260" y="90" width="140" height="72" rx="10" fill="rgba(18,22,35,0.9)" stroke="rgba(167,139,250,0.35)"/>
+  <text x="330" y="122" text-anchor="middle" fill="#c4b5fd" font-size="11" font-family="system-ui,sans-serif" font-weight="600">Successors</text>
+  <text x="330" y="142" text-anchor="middle" fill="#8b95a8" font-size="10" font-family="system-ui,sans-serif">legal moves / edges</text>
+  <path d="M410 126 L470 126" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="480" y="90" width="200" height="72" rx="10" fill="rgba(18,22,35,0.9)" stroke="rgba(45,212,191,0.35)"/>
+  <text x="580" y="118" text-anchor="middle" fill="#5eead4" font-size="11" font-family="system-ui,sans-serif" font-weight="600">Frontier + ordering</text>
+  <text x="580" y="138" text-anchor="middle" fill="#8b95a8" font-size="10" font-family="system-ui,sans-serif">queue / stack / priority queue</text>
+  <!-- three algorithms -->
+  <g font-family="system-ui,sans-serif">
+    <rect x="60" y="200" width="180" height="88" rx="10" fill="rgba(8,10,18,0.85)" stroke="rgba(56,189,248,0.2)"/>
+    <text x="150" y="228" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="600">BFS</text>
+    <text x="150" y="250" text-anchor="middle" fill="#8b95a8" font-size="10">Fewest steps (unweighted)</text>
+    <text x="150" y="268" text-anchor="middle" fill="#8b95a8" font-size="10">FIFO frontier</text>
+    <rect x="270" y="200" width="180" height="88" rx="10" fill="rgba(8,10,18,0.85)" stroke="rgba(56,189,248,0.2)"/>
+    <text x="360" y="228" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="600">DFS</text>
+    <text x="360" y="250" text-anchor="middle" fill="#8b95a8" font-size="10">Goes deep first</text>
+    <text x="360" y="268" text-anchor="middle" fill="#8b95a8" font-size="10">LIFO frontier</text>
+    <rect x="480" y="200" width="180" height="88" rx="10" fill="rgba(8,10,18,0.85)" stroke="rgba(56,189,248,0.2)"/>
+    <text x="570" y="228" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="600">UCS</text>
+    <text x="570" y="250" text-anchor="middle" fill="#8b95a8" font-size="10">Minimum path cost</text>
+    <text x="570" y="268" text-anchor="middle" fill="#8b95a8" font-size="10">Priority by g(n)</text>
+  </g>
+</svg>

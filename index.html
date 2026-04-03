@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="CS170 Introduction to Artificial Intelligence — interactive visual demos: pancake sorting, Pac-Man search, Romania graph traversal, and the 8-puzzle." />
+  <title>CS170: Intro to AI · Visual examples</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #07080d;
+      --bg-panel: rgba(18, 22, 35, 0.72);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      --text: #e8edf5;
+      --muted: #8b95a8;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.15);
+      --violet-glow: rgba(139, 92, 246, 0.35);
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+      --font-ui: "Outfit", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --pac-yellow: #ffeb3b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(56, 189, 248, 0.12), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 100% 100%, rgba(139, 92, 246, 0.08), transparent 45%),
+        linear-gradient(180deg, #0a0c12 0%, #07080d 40%, #05060a 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 56rem;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-glow);
+      background: rgba(18, 22, 35, 0.5);
+    }
+
+    .hero h1 {
+      font-size: clamp(1.75rem, 4.5vw, 2.35rem);
+      font-weight: 700;
+      margin: 0 0 0.65rem;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #f0f4fc 0%, var(--accent) 55%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 40px rgba(56, 189, 248, 0.2);
+    }
+
+    .hero p {
+      margin: 0 auto;
+      max-width: 36rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.55;
+    }
+
+    .hero-visual {
+      margin: 2rem auto 0;
+      max-width: 28rem;
+      aspect-ratio: 16 / 10;
+      border-radius: 1rem;
+      border: 1px solid var(--border-glow);
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      overflow: hidden;
+    }
+
+    .hero-visual svg {
+      width: 100%;
+      height: auto;
+      max-height: 100%;
+    }
+
+    .node {
+      animation: nodePulse 3s ease-in-out infinite;
+    }
+
+    .node:nth-of-type(1) { animation-delay: 0s; }
+    .node:nth-of-type(2) { animation-delay: 0.35s; }
+    .node:nth-of-type(3) { animation-delay: 0.7s; }
+    .node:nth-of-type(4) { animation-delay: 1.05s; }
+    .node:nth-of-type(5) { animation-delay: 0.2s; }
+    .node:nth-of-type(6) { animation-delay: 0.55s; }
+    .node:nth-of-type(7) { animation-delay: 0.9s; }
+
+    @keyframes nodePulse {
+      0%, 100% { opacity: 0.65; }
+      50% { opacity: 1; }
+    }
+
+    .edge {
+      stroke-dasharray: 6 4;
+      animation: edgeFlow 2.5s linear infinite;
+    }
+
+    @keyframes edgeFlow {
+      to { stroke-dashoffset: -20; }
+    }
+
+    .problems-region {
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(56, 189, 248, 0.12);
+    }
+
+    .problems-region__title {
+      margin: 0 0 1.75rem;
+      font-size: clamp(1.15rem, 2.5vw, 1.35rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .subsection {
+      margin-bottom: 2rem;
+    }
+
+    .subsection:last-of-type {
+      margin-bottom: 0;
+    }
+
+    .subsection__heading {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 1rem;
+      text-align: center;
+    }
+
+    .more-soon {
+      margin-top: 1.75rem;
+      padding: 1rem 1.25rem;
+      border-radius: 0.85rem;
+      border: 1px dashed rgba(56, 189, 248, 0.22);
+      background: rgba(8, 10, 18, 0.35);
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      color: rgba(139, 149, 168, 0.85);
+    }
+
+    .cards {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 40rem) {
+      .cards {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border-radius: 1.15rem;
+      border: 1px solid var(--border-glow);
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      padding: 1.35rem 1.35rem 1.5rem;
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      transition:
+        transform 0.22s cubic-bezier(0.34, 1.2, 0.64, 1),
+        border-color 0.22s ease,
+        box-shadow 0.22s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, transparent 55%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(56, 189, 248, 0.45);
+      box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.55),
+        0 0 36px rgba(56, 189, 248, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .card--pac::before {
+      background: linear-gradient(135deg, rgba(255, 235, 59, 0.08) 0%, transparent 55%);
+    }
+
+    .card--pac:hover {
+      border-color: rgba(255, 235, 59, 0.35);
+      box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.55),
+        0 0 36px rgba(255, 235, 59, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .card-kicker {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+
+    .card--pac .card-kicker {
+      color: var(--pac-yellow);
+    }
+
+    .card h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .card-preview {
+      margin-top: 1rem;
+      height: 4.5rem;
+      border-radius: 0.65rem;
+      background: rgba(8, 10, 18, 0.65);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 0.25rem;
+      padding: 0.65rem 0.85rem 0.75rem;
+    }
+
+    .card--pac .card-preview {
+      border-color: rgba(26, 79, 217, 0.35);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mini-pancake {
+      height: 0.55rem;
+      border-radius: 0.15rem;
+      background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .mini-pancake:nth-child(1) { width: 35%; }
+    .mini-pancake:nth-child(2) { width: 55%; }
+    .mini-pancake:nth-child(3) { width: 75%; }
+
+    .mini-pac {
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 50%;
+      background: var(--pac-yellow);
+      clip-path: polygon(50% 50%, 100% 12%, 100% 88%);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-cta {
+      margin-top: 1rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .card--pac .card-cta {
+      color: #fde047;
+    }
+
+    .card--rom .card-kicker {
+      color: #5eead4;
+    }
+
+    .card--rom::before {
+      background: linear-gradient(135deg, rgba(45, 212, 191, 0.08) 0%, transparent 55%);
+    }
+
+    .card--rom:hover {
+      border-color: rgba(45, 212, 191, 0.4);
+      box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.55),
+        0 0 36px rgba(45, 212, 191, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .card--rom .card-cta {
+      color: #5eead4;
+    }
+
+    .card--puzzle .card-kicker {
+      color: #c4b5fd;
+    }
+
+    .card--puzzle::before {
+      background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, transparent 55%);
+    }
+
+    .card--puzzle:hover {
+      border-color: rgba(167, 139, 250, 0.4);
+      box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.55),
+        0 0 36px rgba(167, 139, 250, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .card--puzzle .card-cta {
+      color: #c4b5fd;
+    }
+
+    .mini-puzzle {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      width: 4.5rem;
+      height: 4.5rem;
+      margin-inline: auto;
+    }
+
+    .mini-puzzle span {
+      border-radius: 3px;
+      background: linear-gradient(145deg, rgba(167, 139, 250, 0.55), rgba(56, 189, 248, 0.35));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .mini-puzzle span:nth-child(1) {
+      background: rgba(30, 35, 50, 0.85);
+      border-style: dashed;
+      border-color: rgba(139, 149, 168, 0.35);
+    }
+
+    .mini-rom {
+      width: 100%;
+      height: 3.25rem;
+    }
+
+    .site-footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(56, 189, 248, 0.12);
+    }
+
+    .site-footer p {
+      margin: 0;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <span class="hero-badge">University of California, Riverside</span>
+      <h1>CS170: Intro to AI</h1>
+      <p>Visual examples — interactive demos for classic search problems. Choose a module to explore BFS, DFS, and uniform-cost search in the browser.</p>
+
+      <div class="hero-visual" aria-hidden="true">
+        <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" role="img">
+          <defs>
+            <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#38bdf8;stop-opacity:0.9" />
+              <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.7" />
+            </linearGradient>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+          <line class="edge" x1="40" y1="160" x2="100" y2="100" stroke="url(#g1)" stroke-width="1.5" opacity="0.55" />
+          <line class="edge" x1="40" y1="160" x2="100" y2="140" stroke="url(#g1)" stroke-width="1.5" opacity="0.45" />
+          <line class="edge" x1="100" y1="100" x2="160" y2="55" stroke="url(#g1)" stroke-width="1.5" opacity="0.55" />
+          <line class="edge" x1="100" y1="100" x2="160" y2="90" stroke="url(#g1)" stroke-width="1.5" opacity="0.45" />
+          <line class="edge" x1="100" y1="140" x2="160" y2="120" stroke="url(#g1)" stroke-width="1.5" opacity="0.45" />
+          <line class="edge" x1="160" y1="55" x2="220" y2="35" stroke="url(#g1)" stroke-width="1.5" opacity="0.5" />
+          <line class="edge" x1="160" y1="90" x2="220" y2="75" stroke="url(#g1)" stroke-width="1.5" opacity="0.4" />
+          <circle class="node" cx="40" cy="160" r="5.5" fill="#38bdf8" filter="url(#glow)" />
+          <circle class="node" cx="100" cy="100" r="5.5" fill="#22d3ee" filter="url(#glow)" />
+          <circle class="node" cx="100" cy="140" r="5.5" fill="#22d3ee" filter="url(#glow)" />
+          <circle class="node" cx="160" cy="55" r="5.5" fill="#a78bfa" filter="url(#glow)" />
+          <circle class="node" cx="160" cy="90" r="5.5" fill="#a78bfa" filter="url(#glow)" />
+          <circle class="node" cx="220" cy="35" r="6" fill="#f472b6" filter="url(#glow)" />
+          <circle class="node" cx="220" cy="75" r="5.5" fill="#34d399" filter="url(#glow)" />
+          <text x="160" y="185" text-anchor="middle" fill="#8b95a8" font-family="JetBrains Mono, monospace" font-size="11">search tree · state expansion</text>
+        </svg>
+      </div>
+    </header>
+
+    <section class="problems-region" aria-labelledby="search-problems-heading">
+      <h2 id="search-problems-heading" class="problems-region__title">Search problems</h2>
+
+      <div class="subsection">
+        <p class="subsection__heading">Search algorithms</p>
+        <div class="cards">
+          <a class="card" href="/pancake/">
+            <div class="card-kicker">Sorting &amp; flips</div>
+            <h2>Pancake problem</h2>
+            <p>Flip the top <em>k</em> pancakes to sort the stack. Compare BFS (fewest flips), DFS, and UCS (minimum flip-cost).</p>
+            <div class="card-preview" aria-hidden="true">
+              <div class="mini-pancake"></div>
+              <div class="mini-pancake"></div>
+              <div class="mini-pancake"></div>
+            </div>
+            <span class="card-cta">Open demo →</span>
+          </a>
+
+          <a class="card card--pac" href="/pacman/">
+            <div class="card-kicker">Grid &amp; dots</div>
+            <h2>Pac-Man problem</h2>
+            <p>Eat every dot in a maze with no ghosts. Search over position and which dots remain — watch BFS, DFS, and UCS trace a path.</p>
+            <div class="card-preview" aria-hidden="true">
+              <div class="mini-pac"></div>
+            </div>
+            <span class="card-cta">Open demo →</span>
+          </a>
+
+          <a class="card card--rom" href="/romania/">
+            <div class="card-kicker">Roads &amp; cities</div>
+            <h2>Romania traversal</h2>
+            <p>The classic Romania map: choose any start and goal city, then step through BFS, DFS, or UCS on the road network (default Arad → Bucharest).</p>
+            <div class="card-preview" aria-hidden="true">
+              <svg class="mini-rom" viewBox="0 0 120 48" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+                <line x1="8" y1="28" x2="32" y2="18" stroke="rgba(94,234,212,0.55)" stroke-width="1.2" />
+                <line x1="32" y1="18" x2="58" y2="22" stroke="rgba(94,234,212,0.45)" stroke-width="1.2" />
+                <line x1="58" y1="22" x2="88" y2="14" stroke="rgba(94,234,212,0.5)" stroke-width="1.2" />
+                <line x1="88" y1="14" x2="112" y2="24" stroke="rgba(94,234,212,0.55)" stroke-width="1.2" />
+                <circle cx="8" cy="28" r="3" fill="rgba(56,189,248,0.85)" />
+                <circle cx="112" cy="24" r="3.5" fill="rgba(94,234,212,0.95)" />
+              </svg>
+            </div>
+            <span class="card-cta">Open demo →</span>
+          </a>
+
+          <a class="card card--puzzle" href="/eight-puzzle/">
+            <div class="card-kicker">Tiles &amp; blank</div>
+            <h2>8-puzzle</h2>
+            <p>Slide tiles on a 3×3 grid: run BFS, DFS, or UCS, randomize, or <em>play yourself</em> with a move limit tied to the optimal solution length.</p>
+            <div class="card-preview" aria-hidden="true">
+              <div class="mini-puzzle">
+                <span></span><span></span><span></span>
+                <span></span><span></span><span></span>
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+            <span class="card-cta">Open demo →</span>
+          </a>
+        </div>
+      </div>
+
+      <p class="more-soon" role="status">More to come — additional topics and demos will appear here as the course progresses.</p>
+    </section>
+
+    <footer class="site-footer">
+      <p>© 2026 Pratyay Dutta, Department of Computer Science, University of California, Riverside.</p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="CS170 — BFS, DFS, and UCS on the Romania road map (Arad to Bucharest and any start/goal)." />
+  <title>Romania graph traversal — CS170 · Visual examples</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #07080d;
+      --bg-panel: rgba(18, 22, 35, 0.72);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      --text: #e8edf5;
+      --muted: #8b95a8;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.15);
+      --danger: #f472b6;
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+      --font-ui: "Outfit", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(56, 189, 248, 0.12), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 100% 100%, rgba(139, 92, 246, 0.08), transparent 45%),
+        linear-gradient(180deg, #0a0c12 0%, #07080d 40%, #05060a 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      z-index: 0;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 52rem;
+      margin-inline: auto;
+      padding: 1.25rem 1rem 0;
+    }
+
+    .site-nav {
+      margin-bottom: 1rem;
+    }
+
+    .site-nav a {
+      font-size: 0.88rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .site-nav a:hover {
+      text-decoration: underline;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.35rem, 3vw, 1.65rem);
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #f0f4fc 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+      max-width: 44rem;
+    }
+
+    .edu-panel {
+      margin-top: 1.1rem;
+      padding: 1rem 1.1rem;
+      border-radius: 0.65rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(8, 10, 18, 0.55);
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .edu-panel h2 {
+      margin: 0 0 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #a5b4fc;
+    }
+
+    .edu-panel ul {
+      margin: 0.35rem 0 0;
+      padding-left: 1.15rem;
+    }
+
+    .edu-panel code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #c7d2e0;
+    }
+
+    .start-goal-panel {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.65rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(8, 10, 18, 0.45);
+    }
+
+    .start-goal-panel .row-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      align-items: flex-end;
+    }
+
+    .start-goal-panel label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .start-goal-panel select {
+      padding: 0.45rem 0.5rem;
+      border-radius: 0.45rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(10, 12, 20, 0.9);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      min-width: 11rem;
+      max-width: 100%;
+    }
+
+    .graph-stage {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0;
+    }
+
+    .graph-wrap {
+      width: 100%;
+      margin: 0;
+      border-top: 1px solid var(--border-glow);
+      border-bottom: 1px solid var(--border-glow);
+      padding: 1rem 0.75rem 1.1rem;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      overflow: auto;
+    }
+
+    .graph-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: min(70vh, 620px);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem 1.25rem;
+      margin-top: 0.85rem;
+      padding: 0 1rem 1.5rem;
+      max-width: 52rem;
+      margin-inline: auto;
+      font-size: 0.78rem;
+      color: var(--muted);
+      justify-content: center;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .swatch {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .shell--below-graph {
+      padding-bottom: 3rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 0.55rem 0.95rem;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: 0.02em;
+      border-radius: 0.5rem;
+      border: 1px solid transparent;
+      color: var(--text);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn--bfs {
+      background: linear-gradient(145deg, #1e3a5f 0%, #0f2744 100%);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    .btn--dfs {
+      background: linear-gradient(145deg, #3d2f5c 0%, #1f1538 100%);
+      border-color: rgba(167, 139, 250, 0.35);
+    }
+
+    .btn--ucs {
+      background: linear-gradient(145deg, #1a4d48 0%, #0d2f2c 100%);
+      border-color: rgba(45, 212, 191, 0.35);
+    }
+
+    .btn--reset {
+      background: linear-gradient(145deg, #2a2540 0%, #15101f 100%);
+      border-color: rgba(244, 114, 182, 0.35);
+    }
+
+    .btn--pause {
+      background: linear-gradient(145deg, #3a3020 0%, #221a10 100%);
+      border-color: rgba(251, 191, 36, 0.45);
+    }
+
+    .delay-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .delay-row input[type="range"] {
+      width: 7rem;
+    }
+
+    .readout {
+      margin-top: 1.1rem;
+      border: 1px solid var(--border-glow);
+      border-radius: 0.65rem;
+      padding: 1rem 1.1rem;
+      background: rgba(8, 10, 18, 0.75);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: #c7d2e0;
+      box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.35);
+      min-height: 7rem;
+      white-space: pre-wrap;
+    }
+
+    .readout-label {
+      font-family: var(--font-ui);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .output-panel {
+      margin-top: 1rem;
+      border: 1px solid var(--border-glow);
+      border-radius: 0.65rem;
+      padding: 0.85rem 1rem;
+      background: rgba(8, 10, 18, 0.55);
+      font-size: 0.9rem;
+    }
+
+    .output-panel strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .caption {
+      margin-top: 0.75rem;
+      font-size: 0.88rem;
+      color: #a5b4fc;
+      font-style: italic;
+      min-height: 1.4em;
+    }
+
+    .site-footer {
+      margin-top: 2.5rem;
+      padding-top: 1.25rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(56, 189, 248, 0.12);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="site-nav" aria-label="Breadcrumb">
+      <a href="/">← CS170 visual examples</a>
+    </nav>
+    <header class="hero">
+      <h1>Romania traversal — BFS, DFS &amp; UCS</h1>
+      <p>
+        Classic <strong style="color:#c7d2e0">Romania road map</strong> from AIMA / course materials: each road is undirected in the model (both directions allowed in search); roads are drawn once on the map.
+        Pick any <strong style="color:#c7d2e0">start</strong> and <strong style="color:#c7d2e0">goal</strong> city.
+        Ties break <strong style="color:#c7d2e0">alphabetically</strong> by city name. Edge labels are road distances.
+      </p>
+    </header>
+
+    <section class="edu-panel" aria-labelledby="edu-heading">
+      <h2 id="edu-heading">What the algorithms optimize</h2>
+      <ul>
+        <li><strong style="color:#c7d2e0">BFS</strong> finds a path with the <em>fewest edges</em> (not necessarily minimum total distance).</li>
+        <li><strong style="color:#c7d2e0">DFS</strong> explores deeply first; the first complete path found depends on neighbor ordering.</li>
+        <li><strong style="color:#c7d2e0">UCS</strong> expands by minimum path cost so far — with nonnegative costs, the first time the goal is popped is optimal total distance.</li>
+      </ul>
+    </section>
+
+    <div class="start-goal-panel">
+      <div class="row-flex">
+        <label>Start city
+          <select id="selStart" aria-label="Start city"></select>
+        </label>
+        <label>Goal city
+          <select id="selGoal" aria-label="Goal city"></select>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="graph-stage">
+    <div class="graph-wrap">
+      <svg id="graphSvg" viewBox="0 0 1040 560" preserveAspectRatio="xMidYMid meet" width="100%" aria-label="Romania road graph">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="rgba(139,149,168,0.75)" />
+          </marker>
+          <marker id="arrowActive" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#38bdf8" />
+          </marker>
+        </defs>
+        <g id="edgeLayer"></g>
+        <g id="nodeLayer"></g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="legend" aria-hidden="true">
+    <span><span class="swatch" style="background:#3d4f6a"></span> Unvisited</span>
+    <span><span class="swatch" style="background:rgba(56,189,248,0.45)"></span> In frontier</span>
+    <span><span class="swatch" style="background:#f472b6"></span> Expanding</span>
+    <span><span class="swatch" style="background:#2a3344"></span> Explored</span>
+  </div>
+
+  <div class="shell shell--below-graph">
+    <div class="controls">
+      <button type="button" class="btn btn--bfs" id="btnBfs">Run BFS</button>
+      <button type="button" class="btn btn--dfs" id="btnDfs">Run DFS</button>
+      <button type="button" class="btn btn--ucs" id="btnUcs">Run UCS</button>
+      <button type="button" class="btn btn--reset" id="btnReset">Reset</button>
+      <button type="button" class="btn btn--pause" id="btnPause" disabled>Pause</button>
+      <div class="delay-row">
+        <label for="stepDelay">Step delay</label>
+        <input type="range" id="stepDelay" min="200" max="2000" value="600" step="50" />
+        <span id="delayLabel">600 ms</span>
+      </div>
+    </div>
+
+    <p class="caption" id="caption" role="status"></p>
+
+    <div>
+      <div class="readout-label">Data structure readout</div>
+      <div id="dsReadout" class="readout" aria-live="polite">—</div>
+    </div>
+
+    <div class="output-panel" id="outputPanel">
+      <div><strong>Final path:</strong> <span id="outPath">—</span></div>
+      <div style="margin-top:0.35rem"><strong>Total cost:</strong> <span id="outCost">—</span></div>
+    </div>
+
+    <footer class="site-footer">
+      <p>CS170 · Romania graph · Plain HTML / CSS / JS</p>
+    </footer>
+  </div>
+
+  <script>
+(function () {
+  "use strict";
+
+  /** Undirected Romania map — each road once; adjacency built as bidirectional directed edges (AIMA-style). */
+  const ROMANIA_UNDIRECTED = [
+    ["Oradea", "Zerind", 71],
+    ["Oradea", "Sibiu", 151],
+    ["Zerind", "Arad", 75],
+    ["Arad", "Timisoara", 118],
+    ["Arad", "Sibiu", 140],
+    ["Timisoara", "Lugoj", 111],
+    ["Lugoj", "Mehadia", 70],
+    ["Mehadia", "Drobeta", 75],
+    ["Drobeta", "Craiova", 120],
+    ["Craiova", "Rimnicu Vilcea", 146],
+    ["Craiova", "Pitesti", 138],
+    ["Rimnicu Vilcea", "Sibiu", 80],
+    ["Rimnicu Vilcea", "Pitesti", 97],
+    ["Sibiu", "Fagaras", 99],
+    ["Fagaras", "Bucharest", 211],
+    ["Pitesti", "Bucharest", 101],
+    ["Bucharest", "Giurgiu", 90],
+    ["Bucharest", "Urziceni", 85],
+    ["Urziceni", "Hirsova", 98],
+    ["Hirsova", "Eforie", 86],
+    ["Urziceni", "Vaslui", 142],
+    ["Vaslui", "Iasi", 92],
+    ["Iasi", "Neamt", 87],
+  ];
+
+  const ROMANIA_POS = {
+    Oradea: { x: 60, y: 70 },
+    Zerind: { x: 140, y: 110 },
+    Arad: { x: 120, y: 200 },
+    Timisoara: { x: 80, y: 360 },
+    Lugoj: { x: 180, y: 420 },
+    Mehadia: { x: 260, y: 450 },
+    Drobeta: { x: 360, y: 430 },
+    Craiova: { x: 480, y: 460 },
+    Sibiu: { x: 340, y: 210 },
+    "Rimnicu Vilcea": { x: 460, y: 280 },
+    Fagaras: { x: 500, y: 180 },
+    Pitesti: { x: 560, y: 340 },
+    Bucharest: { x: 720, y: 300 },
+    Giurgiu: { x: 720, y: 430 },
+    Urziceni: { x: 820, y: 260 },
+    Hirsova: { x: 920, y: 280 },
+    Eforie: { x: 980, y: 320 },
+    Vaslui: { x: 900, y: 140 },
+    Iasi: { x: 820, y: 90 },
+    Neamt: { x: 680, y: 50 },
+  };
+
+  let EDGES = {};
+  let POS = {};
+  let NODE_LIST = [];
+  let START = "Arad";
+  let GOAL = "Bucharest";
+  let edgeList = [];
+
+  const svg = document.getElementById("graphSvg");
+  const edgeLayer = document.getElementById("edgeLayer");
+  const nodeLayer = document.getElementById("nodeLayer");
+  const dsReadout = document.getElementById("dsReadout");
+  const captionEl = document.getElementById("caption");
+  const outPath = document.getElementById("outPath");
+  const outCost = document.getElementById("outCost");
+  const selStart = document.getElementById("selStart");
+  const selGoal = document.getElementById("selGoal");
+
+  let frames = [];
+  let frameIndex = 0;
+  let timer = null;
+  let paused = false;
+  let running = false;
+
+  function outNeighbors(u) {
+    return EDGES[u] || [];
+  }
+
+  function syncEdgeList() {
+    edgeList = [];
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      const u = NODE_LIST[i];
+      const outs = outNeighbors(u);
+      for (let j = 0; j < outs.length; j++) {
+        const v = outs[j][0];
+        const w = outs[j][1];
+        edgeList.push({ from: u, to: v, cost: w });
+      }
+    }
+  }
+
+  /** One line per road (undirected); algorithms still use directed `edgeList`. */
+  function uniqueRoadEdges() {
+    const seen = new Set();
+    const roads = [];
+    for (let i = 0; i < edgeList.length; i++) {
+      const e = edgeList[i];
+      const a = e.from;
+      const b = e.to;
+      const lo = a.localeCompare(b) < 0 ? a : b;
+      const hi = a.localeCompare(b) < 0 ? b : a;
+      const key = lo + "|" + hi;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      roads.push({ from: lo, to: hi, cost: e.cost });
+    }
+    return roads;
+  }
+
+  function roadKey(a, b) {
+    return a.localeCompare(b) < 0 ? a + "|" + b : b + "|" + a;
+  }
+
+  function buildRomaniaEdges() {
+    const E = {};
+    for (let i = 0; i < ROMANIA_UNDIRECTED.length; i++) {
+      const row = ROMANIA_UNDIRECTED[i];
+      const a = row[0];
+      const b = row[1];
+      const c = row[2];
+      if (!E[a]) E[a] = [];
+      if (!E[b]) E[b] = [];
+      E[a].push([b, c]);
+      E[b].push([a, c]);
+    }
+    const keys = Object.keys(E).sort();
+    for (let i = 0; i < keys.length; i++) {
+      E[keys[i]].sort(function (x, y) {
+        return x[0].localeCompare(y[0]);
+      });
+    }
+    return E;
+  }
+
+  function loadRomaniaGraph() {
+    EDGES = buildRomaniaEdges();
+    NODE_LIST = Object.keys(EDGES).sort();
+    POS = {};
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      const k = NODE_LIST[i];
+      POS[k] = { x: ROMANIA_POS[k].x, y: ROMANIA_POS[k].y };
+    }
+    START = "Arad";
+    GOAL = "Bucharest";
+    syncEdgeList();
+    updateViewBoxForLayout();
+    buildStaticSvg();
+    fillStartGoalSelects();
+    resetVisualState();
+  }
+
+  function updateViewBoxForLayout() {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      const id = NODE_LIST[i];
+      const p = POS[id];
+      if (!p) continue;
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y);
+      maxY = Math.max(maxY, p.y);
+    }
+    if (!isFinite(minX)) return;
+    const pad = 56;
+    const w = maxX - minX + 2 * pad;
+    const h = maxY - minY + 2 * pad;
+    svg.setAttribute("viewBox", minX - pad + " " + (minY - pad) + " " + w + " " + h);
+  }
+
+  function nodeRadius(id) {
+    if (id.length > 14) return 34;
+    if (id.length > 10) return 30;
+    if (id.length > 6) return 26;
+    return 22;
+  }
+
+  function labelFontSize(id) {
+    if (id.length > 14) return "9";
+    if (id.length > 10) return "10";
+    return "12";
+  }
+
+  function buildStaticSvg() {
+    edgeLayer.innerHTML = "";
+    nodeLayer.innerHTML = "";
+    const roads = uniqueRoadEdges();
+    for (let i = 0; i < roads.length; i++) {
+      const e = roads[i];
+      const p0 = POS[e.from];
+      const p1 = POS[e.to];
+      if (!p0 || !p1) continue;
+      const rk = roadKey(e.from, e.to);
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      const mx = (p0.x + p1.x) / 2;
+      const my = (p0.y + p1.y) / 2;
+      line.setAttribute("x1", p0.x);
+      line.setAttribute("y1", p0.y);
+      line.setAttribute("x2", p1.x);
+      line.setAttribute("y2", p1.y);
+      line.setAttribute("stroke", "rgba(139,149,168,0.45)");
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("marker-end", "url(#arrow)");
+      line.dataset.road = rk;
+      edgeLayer.appendChild(line);
+
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", mx);
+      t.setAttribute("y", my - 8);
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("fill", "#a8b4c8");
+      t.setAttribute("font-family", "JetBrains Mono, monospace");
+      t.setAttribute("font-size", "11");
+      t.textContent = String(e.cost);
+      t.dataset.roadCost = rk;
+      edgeLayer.appendChild(t);
+    }
+
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      const id = NODE_LIST[i];
+      const p = POS[id];
+      if (!p) continue;
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("data-node", id);
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      const r = nodeRadius(id);
+      circle.setAttribute("cx", p.x);
+      circle.setAttribute("cy", p.y);
+      circle.setAttribute("r", String(r));
+      circle.setAttribute("fill", "#3d4f6a");
+      circle.setAttribute("stroke", "rgba(255,255,255,0.2)");
+      circle.setAttribute("stroke-width", "2");
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", p.x);
+      label.setAttribute("y", p.y + 4);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("fill", "#fff");
+      label.setAttribute("font-family", "Outfit, sans-serif");
+      label.setAttribute("font-weight", "700");
+      label.setAttribute("font-size", labelFontSize(id));
+      label.textContent = id;
+      g.appendChild(circle);
+      g.appendChild(label);
+      nodeLayer.appendChild(g);
+    }
+  }
+
+  function nodeEl(id) {
+    return nodeLayer.querySelector('[data-node="' + id.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"]');
+  }
+
+  function setNodeStyle(id, kind) {
+    const g = nodeEl(id);
+    if (!g) return;
+    const c = g.querySelector("circle");
+    const colors = {
+      default: { fill: "#3d4f6a", stroke: "rgba(255,255,255,0.2)" },
+      frontier: { fill: "rgba(56, 189, 248, 0.55)", stroke: "rgba(56, 189, 248, 0.9)" },
+      expand: { fill: "#f472b6", stroke: "#fda4af" },
+      explored: { fill: "#2a3344", stroke: "rgba(255,255,255,0.12)" },
+      path: { fill: "#34d399", stroke: "#6ee7b7" },
+    };
+    const o = colors[kind] || colors.default;
+    c.setAttribute("fill", o.fill);
+    c.setAttribute("stroke", o.stroke);
+  }
+
+  function setEdgeStyle(from, to, kind) {
+    const rk = roadKey(from, to);
+    const line = edgeLayer.querySelector('line[data-road="' + rk + '"]');
+    const text = edgeLayer.querySelector('text[data-road-cost="' + rk + '"]');
+    if (!line) return;
+    if (kind === "active") {
+      line.setAttribute("stroke", "#38bdf8");
+      line.setAttribute("stroke-width", "3");
+      line.setAttribute("marker-end", "url(#arrowActive)");
+      if (text) text.setAttribute("fill", "#38bdf8");
+    } else if (kind === "path") {
+      line.setAttribute("stroke", "#34d399");
+      line.setAttribute("stroke-width", "3");
+      line.setAttribute("marker-end", "url(#arrowActive)");
+      if (text) text.setAttribute("fill", "#6ee7b7");
+    } else {
+      line.setAttribute("stroke", "rgba(90,100,120,0.35)");
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("marker-end", "url(#arrow)");
+      if (text) text.setAttribute("fill", "#5a6578");
+    }
+  }
+
+  function resetEdgeStyles() {
+    const roads = uniqueRoadEdges();
+    for (let i = 0; i < roads.length; i++) {
+      const e = roads[i];
+      const rk = roadKey(e.from, e.to);
+      const line = edgeLayer.querySelector('line[data-road="' + rk + '"]');
+      const text = edgeLayer.querySelector('text[data-road-cost="' + rk + '"]');
+      if (line) {
+        line.setAttribute("stroke", "rgba(139,149,168,0.45)");
+        line.setAttribute("stroke-width", "2");
+        line.setAttribute("marker-end", "url(#arrow)");
+      }
+      if (text) text.setAttribute("fill", "#a8b4c8");
+    }
+  }
+
+  function resetVisualState() {
+    captionEl.textContent = "";
+    dsReadout.textContent = "—";
+    outPath.textContent = "—";
+    outCost.textContent = "—";
+    for (let i = 0; i < NODE_LIST.length; i++) setNodeStyle(NODE_LIST[i], "default");
+    resetEdgeStyles();
+  }
+
+  function applyFrame(f) {
+    captionEl.textContent = f.caption || "";
+    dsReadout.textContent = f.dsText || "—";
+
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      setNodeStyle(NODE_LIST[i], "default");
+    }
+    resetEdgeStyles();
+
+    if (f.nodeStates) {
+      for (let i = 0; i < NODE_LIST.length; i++) {
+        const id = NODE_LIST[i];
+        const st = f.nodeStates[id];
+        if (st) setNodeStyle(id, st);
+      }
+    }
+
+    if (f.edgeHighlight) {
+      for (let i = 0; i < f.edgeHighlight.length; i++) {
+        const h = f.edgeHighlight[i];
+        setEdgeStyle(h.from, h.to, h.style || "active");
+      }
+    }
+
+    if (f.finalPathEdges) {
+      for (let i = 0; i < f.finalPathEdges.length; i++) {
+        const e = f.finalPathEdges[i];
+        setEdgeStyle(e[0], e[1], "path");
+      }
+    }
+
+    outPath.textContent = f.pathStr != null ? f.pathStr : "—";
+    outCost.textContent = f.costStr != null ? f.costStr : "—";
+  }
+
+  function formatQueue(q) {
+    if (!q.length) return "[ ]";
+    return "[ " + q.join(" | ") + " ]";
+  }
+
+  function sortedExplored(ex) {
+    return Array.from(ex)
+      .sort()
+      .join(", ");
+  }
+
+  function nodeStatesBFS(expanding, frontier, explored) {
+    const st = {};
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      const n = NODE_LIST[i];
+      if (expanding && n === expanding) st[n] = "expand";
+      else if (explored.has(n)) st[n] = "explored";
+      else if (frontier.includes(n)) st[n] = "frontier";
+      else st[n] = "default";
+    }
+    return st;
+  }
+
+  function goalReachable() {
+    const q = [START];
+    const seen = new Set([START]);
+    while (q.length) {
+      const u = q.shift();
+      if (u === GOAL) return true;
+      const outs = outNeighbors(u);
+      for (let i = 0; i < outs.length; i++) {
+        const v = outs[i][0];
+        if (!seen.has(v)) {
+          seen.add(v);
+          q.push(v);
+        }
+      }
+    }
+    return false;
+  }
+
+  function unreachableFrames(msg) {
+    return [
+      {
+        caption: msg,
+        dsText: "No animation — choose different start/goal.",
+        nodeStates: Object.fromEntries(NODE_LIST.map(function (n) { return [n, "default"]; })),
+        pathStr: "—",
+        costStr: "—",
+      },
+    ];
+  }
+
+  function buildBFSFrames() {
+    if (START === GOAL) {
+      return unreachableFrames("Start and goal must differ.");
+    }
+    if (!goalReachable()) {
+      return unreachableFrames('Goal "' + GOAL + '" is not reachable from start "' + START + '".');
+    }
+    const out = [];
+    const queue = [START];
+    const explored = new Set();
+    const parent = {};
+    parent[START] = null;
+
+    out.push({
+      caption: "BFS: initialize queue with the start city " + START + ".",
+      dsText:
+        "QUEUE (FIFO) — front is left, back is right:\n" +
+        formatQueue(queue) +
+        "\n\nTie-breaking: neighbors are enqueued in alphabetical order.",
+      nodeStates: nodeStatesBFS(null, queue, new Set()),
+      pathStr: "—",
+      costStr: "—",
+    });
+
+    while (queue.length) {
+      const u = queue.shift();
+
+      out.push({
+        caption: 'Dequeue "' + u + '" (expand this city next).',
+        dsText:
+          "QUEUE (remainder after removing front):\n" +
+          formatQueue(queue) +
+          "\n\nExpanding: \"" +
+          u +
+          '".',
+        nodeStates: nodeStatesBFS(u, [u].concat(queue), explored),
+        pathStr: "—",
+        costStr: "—",
+      });
+
+      explored.add(u);
+
+      if (u === GOAL) {
+        const path = reconstruct(parent, GOAL);
+        const cost = pathCost(path);
+        out.push({
+          caption: "Dequeued goal " + GOAL + " — BFS terminates (minimum number of edges from " + START + ").",
+          dsText: "QUEUE: empty.\nExplored: " + sortedExplored(explored),
+          nodeStates: nodeStatesBFS(null, [], explored),
+          edgeHighlight: pathEdges(path).map(function (ab) {
+            return { from: ab[0], to: ab[1], style: "path" };
+          }),
+          finalPathEdges: pathEdges(path),
+          pathStr: path.join(" → "),
+          costStr: String(cost),
+        });
+        return out;
+      }
+
+      const outs = outNeighbors(u);
+      for (let i = 0; i < outs.length; i++) {
+        const v = outs[i][0];
+        if (parent[v] !== undefined) continue;
+        parent[v] = u;
+        queue.push(v);
+        out.push({
+          caption: "Road " + u + " → " + v + ": first visit — enqueue " + v + ".",
+          dsText: "QUEUE:\n" + formatQueue(queue) + "\n\nExplored: " + sortedExplored(explored),
+          nodeStates: nodeStatesBFS(null, queue, explored),
+          edgeHighlight: [{ from: u, to: v, style: "active" }],
+          pathStr: "—",
+          costStr: "—",
+        });
+      }
+
+      out.push({
+        caption: 'Done expanding "' + u + '".',
+        dsText: "QUEUE:\n" + formatQueue(queue) + "\n\nExplored: " + sortedExplored(explored),
+        nodeStates: nodeStatesBFS(null, queue, explored),
+        pathStr: "—",
+        costStr: "—",
+      });
+    }
+
+    return out;
+  }
+
+  function reconstruct(parent, goal) {
+    const p = [goal];
+    let x = goal;
+    while (parent[x] != null) {
+      x = parent[x];
+      p.push(x);
+    }
+    return p.reverse();
+  }
+
+  function pathCost(nodes) {
+    let c = 0;
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a = nodes[i];
+      const b = nodes[i + 1];
+      const lst = outNeighbors(a);
+      let w = 0;
+      for (let j = 0; j < lst.length; j++) {
+        if (lst[j][0] === b) w = lst[j][1];
+      }
+      c += w;
+    }
+    return c;
+  }
+
+  function pathEdges(nodes) {
+    const e = [];
+    for (let i = 0; i < nodes.length - 1; i++) e.push([nodes[i], nodes[i + 1]]);
+    return e;
+  }
+
+  function buildDFSFrames() {
+    if (START === GOAL) {
+      return unreachableFrames("Start and goal must differ.");
+    }
+    if (!goalReachable()) {
+      return unreachableFrames('Goal "' + GOAL + '" is not reachable from start "' + START + '".');
+    }
+    const out = [];
+    const stack = [START];
+    const parent = {};
+    parent[START] = null;
+    const visited = new Set();
+
+    const startNeigh = outNeighbors(START)
+      .map(function (x) {
+        return x[0];
+      })
+      .sort();
+    const rev = startNeigh.slice().reverse();
+    out.push({
+      caption:
+        "DFS (iterative): stack contains " +
+        START +
+        ". Neighbors of " +
+        START +
+        " (" +
+        (startNeigh.length ? startNeigh.join(", ") : "none") +
+        ") are pushed in reverse alphabetical order so the next pop is alphabetical.",
+      dsText:
+        "STACK (LIFO) — top is right:\n" +
+        formatStack(stack) +
+        (startNeigh.length
+          ? "\n\nPush order for neighbors: " + rev.join(", ") + " (last pushed = first popped)."
+          : ""),
+      nodeStates: nodeStatesDFS(stack, visited, null),
+      pathStr: "—",
+      costStr: "—",
+    });
+
+    while (stack.length) {
+      const u = stack.pop();
+
+      if (visited.has(u)) continue;
+
+      out.push({
+        caption: 'Pop "' + u + '".',
+        dsText: "STACK:\n" + formatStack(stack) + "\n\nVisiting \"" + u + '".',
+        nodeStates: nodeStatesDFS(stack, visited, u),
+        pathStr: "—",
+        costStr: "—",
+      });
+
+      visited.add(u);
+
+      if (u === GOAL) {
+        const path = reconstruct(parent, GOAL);
+        const cost = pathCost(path);
+        out.push({
+          caption: "Reached " + GOAL + " — DFS stops (first goal pop).",
+          dsText: "STACK may still hold nodes.",
+          nodeStates: nodeStatesDFS(stack, visited, null),
+          edgeHighlight: pathEdges(path).map(function (ab) {
+            return { from: ab[0], to: ab[1], style: "path" };
+          }),
+          finalPathEdges: pathEdges(path),
+          pathStr: path.join(" → "),
+          costStr: String(cost),
+        });
+        return out;
+      }
+
+      const names = outNeighbors(u)
+        .map(function (x) {
+          return x[0];
+        })
+        .sort();
+      for (let i = names.length - 1; i >= 0; i--) {
+        const v = names[i];
+        if (!visited.has(v)) {
+          parent[v] = u;
+          stack.push(v);
+        }
+      }
+
+      out.push({
+        caption: "Pushed unvisited neighbors of \"" + u + '" in reverse alphabetical order.',
+        dsText: "STACK:\n" + formatStack(stack) + "\n\nVisited: " + sortedExplored(visited),
+        nodeStates: nodeStatesDFS(stack, visited, null),
+        edgeHighlight: names
+          .filter(function (n) {
+            return parent[n] === u;
+          })
+          .map(function (n) {
+            return { from: u, to: n, style: "active" };
+          }),
+        pathStr: "—",
+        costStr: "—",
+      });
+    }
+
+    return out;
+  }
+
+  function formatStack(s) {
+    if (!s.length) return "[ empty ]";
+    return "[ " + s.join(" | ") + " ]  ← top";
+  }
+
+  function nodeStatesDFS(stack, visited, expanding) {
+    const frontier = new Set(stack);
+    const st = {};
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      const n = NODE_LIST[i];
+      if (expanding === n) st[n] = "expand";
+      else if (visited.has(n)) st[n] = "explored";
+      else if (frontier.has(n)) st[n] = "frontier";
+      else st[n] = "default";
+    }
+    return st;
+  }
+
+  function buildUCSFrames() {
+    if (START === GOAL) {
+      return unreachableFrames("Start and goal must differ.");
+    }
+    if (!goalReachable()) {
+      return unreachableFrames('Goal "' + GOAL + '" is not reachable from start "' + START + '".');
+    }
+    const out = [];
+    const open = [{ node: START, cost: 0 }];
+    const parent = {};
+    parent[START] = null;
+    const gScore = {};
+    gScore[START] = 0;
+
+    function heapDisplay(arr) {
+      const copy = arr
+        .slice()
+        .sort(function (a, b) {
+          return a.cost - b.cost || a.node.localeCompare(b.node);
+        });
+      if (!copy.length) return "(empty)";
+      return copy
+        .map(function (x) {
+          return x.node + ":" + x.cost;
+        })
+        .join("  |  ");
+    }
+
+    out.push({
+      caption: "UCS: min-heap by path cost; ties alphabetical.",
+      dsText:
+        "MIN-HEAP:\n" +
+        heapDisplay(open) +
+        "\n\ng(" +
+        START +
+        ")=0.",
+      nodeStates: nodeStatesUCS(open, new Set(), null),
+      pathStr: "—",
+      costStr: "—",
+    });
+
+    const explored = new Set();
+
+    while (open.length) {
+      open.sort(function (a, b) {
+        return a.cost - b.cost || a.node.localeCompare(b.node);
+      });
+      const cur = open.shift();
+      const u = cur.node;
+      const gu = cur.cost;
+
+      if (gu > gScore[u]) continue;
+
+      out.push({
+        caption: 'Pop minimum: ("' + u + '", g=' + gu + ").",
+        dsText:
+          "HEAP before pop:\n" +
+          heapDisplay([cur].concat(open)) +
+          "\n\nPopping: " +
+          u +
+          " with g=" +
+          gu,
+        nodeStates: nodeStatesUCS(open, explored, u),
+        pathStr: "—",
+        costStr: "—",
+      });
+
+      explored.add(u);
+
+      if (u === GOAL) {
+        const path = reconstruct(parent, GOAL);
+        const cost = pathCost(path);
+        out.push({
+          caption: "Popped goal " + GOAL + " with minimum total road distance (nonnegative edges).",
+          dsText: "HEAP: " + heapDisplay(open) + "\nExplored: " + sortedExplored(explored),
+          nodeStates: nodeStatesUCS(open, explored, null),
+          edgeHighlight: pathEdges(path).map(function (ab) {
+            return { from: ab[0], to: ab[1], style: "path" };
+          }),
+          finalPathEdges: pathEdges(path),
+          pathStr: path.join(" → "),
+          costStr: String(cost),
+        });
+        return out;
+      }
+
+      const outs = outNeighbors(u);
+      for (let i = 0; i < outs.length; i++) {
+        const v = outs[i][0];
+        const w = outs[i][1];
+        const tentative = gu + w;
+        if (gScore[v] === undefined || tentative < gScore[v]) {
+          gScore[v] = tentative;
+          parent[v] = u;
+          open.push({ node: v, cost: tentative });
+          out.push({
+            caption: "Relax " + u + " → " + v + ": g(" + v + ")=" + tentative,
+            dsText:
+              "HEAP:\n" +
+              heapDisplay(open) +
+              "\n\nBest g: " +
+              Object.keys(gScore)
+                .sort()
+                .map(function (k) {
+                  return k + "=" + gScore[k];
+                })
+                .join(", "),
+            nodeStates: nodeStatesUCS(open, explored, null),
+            edgeHighlight: [{ from: u, to: v, style: "active" }],
+            pathStr: "—",
+            costStr: "—",
+          });
+        }
+      }
+    }
+
+    return out;
+  }
+
+  function nodeStatesUCS(open, explored, expanding) {
+    const frontier = new Set(
+      open.map(function (x) {
+        return x.node;
+      })
+    );
+    const st = {};
+    for (let i = 0; i < NODE_LIST.length; i++) {
+      const n = NODE_LIST[i];
+      if (expanding === n) st[n] = "expand";
+      else if (explored.has(n)) st[n] = "explored";
+      else if (frontier.has(n)) st[n] = "frontier";
+      else st[n] = "default";
+    }
+    return st;
+  }
+
+  function clearTimer() {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  }
+
+  function stepDelayMs() {
+    return +document.getElementById("stepDelay").value || 600;
+  }
+
+  function runAnimation() {
+    clearTimer();
+    if (frameIndex >= frames.length) {
+      running = false;
+      document.getElementById("btnPause").disabled = true;
+      setButtonsRunning(false);
+      return;
+    }
+    applyFrame(frames[frameIndex]);
+    frameIndex++;
+    if (frameIndex < frames.length && running && !paused) {
+      timer = setTimeout(runAnimation, stepDelayMs());
+    } else if (frameIndex >= frames.length) {
+      running = false;
+      document.getElementById("btnPause").disabled = true;
+      setButtonsRunning(false);
+    }
+  }
+
+  function setButtonsRunning(disabled) {
+    ["btnBfs", "btnDfs", "btnUcs", "btnReset"].forEach(function (id) {
+      document.getElementById(id).disabled = disabled;
+    });
+  }
+
+  function startRun(buildFn) {
+    clearTimer();
+    START = selStart.value;
+    GOAL = selGoal.value;
+    frames = buildFn();
+    frameIndex = 0;
+    running = true;
+    paused = false;
+    document.getElementById("btnPause").disabled = false;
+    document.getElementById("btnPause").textContent = "Pause";
+    setButtonsRunning(true);
+    runAnimation();
+  }
+
+  function fillStartGoalSelects() {
+    const list = NODE_LIST.slice().sort();
+    selStart.innerHTML = "";
+    selGoal.innerHTML = "";
+    for (let i = 0; i < list.length; i++) {
+      const n = list[i];
+      const o1 = document.createElement("option");
+      o1.value = n;
+      o1.textContent = n;
+      selStart.appendChild(o1);
+      const o2 = document.createElement("option");
+      o2.value = n;
+      o2.textContent = n;
+      selGoal.appendChild(o2);
+    }
+    if (list.includes("Arad")) selStart.value = "Arad";
+    if (list.includes("Bucharest")) selGoal.value = "Bucharest";
+  }
+
+  document.getElementById("btnBfs").addEventListener("click", function () {
+    startRun(buildBFSFrames);
+  });
+
+  document.getElementById("btnDfs").addEventListener("click", function () {
+    startRun(buildDFSFrames);
+  });
+
+  document.getElementById("btnUcs").addEventListener("click", function () {
+    startRun(buildUCSFrames);
+  });
+
+  document.getElementById("btnReset").addEventListener("click", function () {
+    clearTimer();
+    running = false;
+    paused = false;
+    frameIndex = 0;
+    frames = [];
+    document.getElementById("btnPause").disabled = true;
+    document.getElementById("btnPause").textContent = "Pause";
+    setButtonsRunning(false);
+    resetVisualState();
+  });
+
+  document.getElementById("btnPause").addEventListener("click", function () {
+    if (!running && frames.length === 0) return;
+    paused = !paused;
+    document.getElementById("btnPause").textContent = paused ? "Resume" : "Pause";
+    if (!paused && running) {
+      timer = setTimeout(runAnimation, stepDelayMs());
+    } else {
+      clearTimer();
+    }
+  });
+
+  document.getElementById("stepDelay").addEventListener("input", function (e) {
+    document.getElementById("delayLabel").textContent = e.target.value + " ms";
+  });
+
+  selStart.addEventListener("change", function () {
+    START = selStart.value;
+    resetVisualState();
+  });
+
+  selGoal.addEventListener("change", function () {
+    GOAL = selGoal.value;
+    resetVisualState();
+  });
+
+  loadRomaniaGraph();
+})();
+  </script>
+</body>
+</html>

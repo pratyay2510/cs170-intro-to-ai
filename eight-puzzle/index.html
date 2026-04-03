@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="CS170 — 8-puzzle: BFS, DFS, UCS, and play yourself with a move limit." />
+  <title>8-puzzle — CS170 · Visual examples</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #07080d;
+      --bg-panel: rgba(18, 22, 35, 0.72);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      --text: #e8edf5;
+      --muted: #8b95a8;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.15);
+      --danger: #f472b6;
+      --puzzle-accent: #a78bfa;
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+      --font-ui: "Outfit", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(56, 189, 248, 0.12), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 100% 100%, rgba(139, 92, 246, 0.08), transparent 45%),
+        linear-gradient(180deg, #0a0c12 0%, #07080d 40%, #05060a 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      z-index: 0;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 52rem;
+      margin-inline: auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.35rem, 3vw, 1.65rem);
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+      text-shadow: 0 2px 24px rgba(56, 189, 248, 0.35);
+      background: linear-gradient(135deg, #f0f4fc 0%, var(--puzzle-accent) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 40rem;
+    }
+
+    .layout {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 42rem) {
+      .layout {
+        grid-template-columns: 1fr 16rem;
+        align-items: start;
+      }
+    }
+
+    .viz-wrap {
+      border: 1px solid var(--border-glow);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      min-height: 16rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .viz-wrap.panel-pulse {
+      animation: panelPulse 0.55s ease;
+    }
+
+    @keyframes panelPulse {
+      0%, 100% { box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+      40% {
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.55),
+          0 0 32px rgba(167, 139, 250, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .play-banner {
+      width: 100%;
+      max-width: 20rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(167, 139, 250, 0.35);
+      background: rgba(88, 28, 135, 0.25);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: #e9d5ff;
+      text-align: center;
+    }
+
+    .play-banner strong {
+      color: #f5d0fe;
+    }
+
+    .play-banner--lose {
+      border-color: rgba(244, 114, 182, 0.45);
+      background: rgba(131, 24, 67, 0.28);
+      color: #fce7f3;
+    }
+
+    .puzzle-grid {
+      display: grid;
+      grid-template-columns: repeat(3, var(--cell));
+      grid-template-rows: repeat(3, var(--cell));
+      gap: 0.35rem;
+      --cell: min(4.5rem, 18vw);
+      padding: 0.35rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      background: rgba(8, 10, 18, 0.65);
+      transition: transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    .puzzle-grid--win {
+      animation: gridWin 0.9s ease;
+    }
+
+    @keyframes gridWin {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      25% { transform: scale(1.04); filter: brightness(1.15); }
+      50% { transform: scale(1.02); filter: brightness(1.08); }
+    }
+
+    .tile {
+      border-radius: 0.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: clamp(1rem, 4vw, 1.35rem);
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      user-select: none;
+      transition:
+        transform 0.22s cubic-bezier(0.34, 1.2, 0.64, 1),
+        box-shadow 0.15s ease;
+      will-change: transform;
+    }
+
+    .tile.tile--anim-skip {
+      transition: none;
+    }
+
+    .tile--blank {
+      background: rgba(30, 35, 50, 0.85);
+      border-style: dashed;
+      border-color: rgba(139, 149, 168, 0.35);
+      box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .tile--playable {
+      cursor: pointer;
+    }
+
+    .tile--playable:hover {
+      transform: scale(1.05);
+      box-shadow:
+        0 6px 20px rgba(56, 189, 248, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    .tile--playable:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .tile--blocked {
+      cursor: default;
+      opacity: 0.92;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.55rem 0.85rem;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: 0.02em;
+      border-radius: 0.5rem;
+      border: 1px solid transparent;
+      color: var(--text);
+      position: relative;
+      overflow: hidden;
+      transition:
+        transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+        box-shadow 0.22s ease,
+        filter 0.2s ease;
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.08) inset;
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.5),
+        0 0 24px rgba(56, 189, 248, 0.22),
+        0 1px 0 rgba(255, 255, 255, 0.12) inset;
+      filter: brightness(1.08);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(-1px);
+      transition-duration: 0.08s;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn--bfs {
+      background: linear-gradient(145deg, #1e3a5f 0%, #0f2744 100%);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    .btn--dfs {
+      background: linear-gradient(145deg, #3d2f5c 0%, #1f1538 100%);
+      border-color: rgba(167, 139, 250, 0.35);
+    }
+
+    .btn--ucs {
+      background: linear-gradient(145deg, #1a4d48 0%, #0d2f2c 100%);
+      border-color: rgba(45, 212, 191, 0.35);
+    }
+
+    .btn--rand {
+      background: linear-gradient(145deg, #2a2540 0%, #15101f 100%);
+      border-color: rgba(244, 114, 182, 0.35);
+    }
+
+    .btn--play {
+      background: linear-gradient(145deg, #4c1d95 0%, #2e1065 100%);
+      border-color: rgba(167, 139, 250, 0.5);
+    }
+
+    .btn--demo {
+      background: linear-gradient(145deg, #1a3d52 0%, #0f2538 100%);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .btn--stop {
+      background: linear-gradient(145deg, #5c2b3a 0%, #3b1520 100%);
+      border-color: rgba(248, 113, 113, 0.45);
+    }
+
+    .btn--stop:hover:not(:disabled) {
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.5),
+        0 0 24px rgba(248, 113, 113, 0.18),
+        0 1px 0 rgba(255, 255, 255, 0.12) inset;
+    }
+
+    .section-label {
+      margin-top: 1.25rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .readout {
+      border: 1px solid var(--border-glow);
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      white-space: pre-wrap;
+      min-height: 4.5rem;
+      background: rgba(8, 10, 18, 0.75);
+      color: #c7d2e0;
+      box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.35);
+      line-height: 1.45;
+    }
+
+    #costReadout {
+      min-height: auto;
+    }
+
+    .formulation {
+      margin-top: 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(8, 10, 18, 0.55);
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .formulation strong {
+      color: #a5b4fc;
+      font-weight: 600;
+    }
+
+    .formulation code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #c7d2e0;
+    }
+
+    .error {
+      margin-top: 0.65rem;
+      font-size: 0.88rem;
+      color: var(--danger);
+      text-shadow: 0 0 20px rgba(244, 114, 182, 0.35);
+    }
+
+    .site-footer {
+      position: relative;
+      z-index: 1;
+      margin-top: 3rem;
+      padding: 1.5rem 1rem 2rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(56, 189, 248, 0.12);
+    }
+
+    .site-footer p {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .site-nav {
+      position: relative;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      margin: 1rem auto 0;
+      max-width: 52rem;
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-glow);
+      background: rgba(18, 22, 35, 0.6);
+      color: var(--muted);
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    .site-nav:hover {
+      color: var(--accent);
+      border-color: rgba(56, 189, 248, 0.45);
+      background: rgba(18, 22, 35, 0.85);
+    }
+
+    /* Win overlay */
+    .win-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    .win-overlay.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .win-overlay__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 6, 12, 0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    .win-overlay__card {
+      position: relative;
+      padding: 2rem 2.25rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      background: linear-gradient(145deg, rgba(46, 16, 101, 0.95), rgba(18, 22, 35, 0.98));
+      box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.55),
+        0 0 48px rgba(167, 139, 250, 0.2);
+      text-align: center;
+      transform: scale(0.85);
+      transition: transform 0.4s cubic-bezier(0.34, 1.3, 0.64, 1);
+    }
+
+    .win-overlay.is-visible .win-overlay__card {
+      transform: scale(1);
+    }
+
+    .win-overlay__card h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.65rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fef3c7, #fbbf24, #f472b6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .win-overlay__card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .win-overlay__sparkles {
+      position: absolute;
+      inset: -2rem;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .sparkle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fde047;
+      opacity: 0;
+      animation: sparkle 1.2s ease forwards;
+    }
+
+    @keyframes sparkle {
+      0% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0.3);
+      }
+      40% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="site-nav" href="/">← CS170 · Visual examples</a>
+  <div class="shell">
+    <header class="hero">
+      <h1>8-puzzle — BFS, DFS, UCS &amp; play</h1>
+      <p>
+        Tiles 1–8 and one blank on a 3×3 grid. Goal: blank top-left, then 1–2 on the first row, 3–5, then 6–8.
+        In <strong>play mode</strong>, slide tiles into the blank (or use arrow keys) within a move budget.
+      </p>
+    </header>
+
+    <div class="formulation">
+      <strong>Formulation:</strong> A <em>state</em> is the tile placement; <em>actions</em> move the blank up, down, left, or right;
+      each move has cost 1 (UCS matches BFS for fewest moves). Random states are generated by a random walk from the goal so they are always solvable.
+    </div>
+
+    <div class="layout">
+      <div id="vizWrap" class="viz-wrap" aria-live="polite">
+        <div id="playBanner" class="play-banner" hidden></div>
+        <div id="puzzleGrid" class="puzzle-grid" role="grid" aria-label="Eight puzzle board"></div>
+      </div>
+      <div class="controls">
+        <button type="button" class="btn btn--play" id="btnPlay">Play game yourself</button>
+        <button type="button" class="btn btn--bfs" id="btnBfs">Run BFS</button>
+        <button type="button" class="btn btn--dfs" id="btnDfs">Run DFS</button>
+        <button type="button" class="btn btn--ucs" id="btnUcs">Run UCS</button>
+        <button type="button" class="btn btn--rand" id="btnRand">Randomize state</button>
+        <button type="button" class="btn btn--demo" id="btnSlideExample">Load slide example</button>
+        <button type="button" class="btn btn--stop" id="btnStopSolve" hidden disabled>Stop solving</button>
+      </div>
+    </div>
+
+    <div class="section-label">Path (blank moves: U / D / L / R)</div>
+    <div id="pathReadout" class="readout">—</div>
+    <div class="section-label">Total cost (moves)</div>
+    <div id="costReadout" class="readout">0</div>
+    <div id="error" class="error" role="alert"></div>
+  </div>
+
+  <div id="winOverlay" class="win-overlay" aria-hidden="true">
+    <div class="win-overlay__backdrop" id="winBackdrop"></div>
+    <div class="win-overlay__card">
+      <div id="winSparkles" class="win-overlay__sparkles" aria-hidden="true"></div>
+      <h2>You solved it!</h2>
+      <p>Great job finishing within the move limit.</p>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const GOAL = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  const SLIDE_EXAMPLE = [7, 2, 4, 5, 0, 6, 8, 3, 1];
+  const DIR_NAMES = { U: "up", D: "down", L: "left", R: "right" };
+
+  const puzzleGrid = document.getElementById("puzzleGrid");
+  const vizWrap = document.getElementById("vizWrap");
+  const playBanner = document.getElementById("playBanner");
+  const pathReadout = document.getElementById("pathReadout");
+  const costReadout = document.getElementById("costReadout");
+  const errorEl = document.getElementById("error");
+  const winOverlay = document.getElementById("winOverlay");
+  const winBackdrop = document.getElementById("winBackdrop");
+  const winSparkles = document.getElementById("winSparkles");
+
+  let state = GOAL.slice();
+  let playMode = false;
+  let playMovesUsed = 0;
+  let playMaxMoves = 0;
+  let playOptimal = 0;
+  let animTimer = null;
+  let searchTimer = null;
+  let solveAnimCancelled = false;
+  const STEP_MS = 380;
+
+  const tileColors = {};
+  const VALID_DIRS = new Set(["U", "D", "L", "R"]);
+  /** Safety cap for parent-chain walks (optimal 8-puzzle ≤ 31 moves). */
+  const MAX_PATH_RECONSTRUCT = 80;
+
+  function buildTileColors() {
+    const base = Math.random() * 360;
+    const golden = 137.508;
+    for (let v = 1; v <= 8; v++) {
+      const h = (base + golden * (v - 1)) % 360;
+      const sat = 58 + (v * 5) % 15;
+      const l1 = 48 + (v * 2) % 10;
+      const l2 = Math.max(28, l1 - 16);
+      tileColors[v] = `linear-gradient(145deg, hsl(${h}, ${sat}%, ${l1}%) 0%, hsl(${h}, ${sat}%, ${l2}%) 100%)`;
+    }
+  }
+
+  function stateKey(s) {
+    return s.join(",");
+  }
+
+  /** True iff length 9 and exactly one of each value 0..8. */
+  function isValidPuzzleState(s) {
+    if (!Array.isArray(s) || s.length !== 9) return false;
+    const seen = new Uint8Array(9);
+    for (let i = 0; i < 9; i++) {
+      const v = s[i];
+      if (typeof v !== "number" || v !== (v | 0) || v < 0 || v > 8) return false;
+      if (seen[v]) return false;
+      seen[v] = 1;
+    }
+    return true;
+  }
+
+  /**
+   * Reconstruct move list from parent map. Returns null if chain is broken or too long.
+   */
+  function reconstructPathFromParent(parent, startKey, goalKey) {
+    const path = [];
+    let cur = goalKey;
+    let steps = 0;
+    while (cur !== startKey) {
+      if (++steps > MAX_PATH_RECONSTRUCT) return null;
+      const p = parent.get(cur);
+      if (!p || typeof p.dir !== "string" || !VALID_DIRS.has(p.dir)) return null;
+      path.push(p.dir);
+      if (p.from === cur) return null;
+      cur = p.from;
+    }
+    path.reverse();
+    return path;
+  }
+
+  function isGoal(s) {
+    return s.every((v, i) => v === GOAL[i]);
+  }
+
+  function cloneSwap(s, i, j) {
+    const n = s.slice();
+    [n[i], n[j]] = [n[j], n[i]];
+    return n;
+  }
+
+  function blankIndex(s) {
+    return s.indexOf(0);
+  }
+
+  /** Returns list of { dir, next } where dir is how the blank moves. */
+  function successors(s) {
+    const bi = blankIndex(s);
+    if (bi < 0) return [];
+    const r = (bi / 3) | 0;
+    const c = bi % 3;
+    const out = [];
+    if (r > 0) out.push({ dir: "U", next: cloneSwap(s, bi, bi - 3) });
+    if (r < 2) out.push({ dir: "D", next: cloneSwap(s, bi, bi + 3) });
+    if (c > 0) out.push({ dir: "L", next: cloneSwap(s, bi, bi - 1) });
+    if (c < 2) out.push({ dir: "R", next: cloneSwap(s, bi, bi + 1) });
+    return out;
+  }
+
+  function randomWalkFromGoal(stepsMin, stepsMax) {
+    let s = GOAL.slice();
+    const steps = stepsMin + Math.floor(Math.random() * (stepsMax - stepsMin + 1));
+    let lastOpp = null;
+    const opp = { U: "D", D: "U", L: "R", R: "L" };
+    for (let t = 0; t < steps; t++) {
+      const succ = successors(s);
+      if (!succ.length) break;
+      let choices = succ;
+      if (lastOpp) {
+        const filtered = succ.filter((x) => x.dir !== lastOpp);
+        if (filtered.length) choices = filtered;
+      }
+      const pick = choices[Math.floor(Math.random() * choices.length)];
+      if (!pick || !pick.next) break;
+      s = pick.next;
+      lastOpp = opp[pick.dir];
+    }
+    return s;
+  }
+
+  /**
+   * BFS with O(1) dequeue (head index, not Array#shift) and parent pointers — no
+   * per-edge path copying. Using shift() on large queues is O(n) per step and
+   * freezes the page.
+   */
+  function bfs(initial) {
+    if (!isValidPuzzleState(initial)) return null;
+    const gk = stateKey(GOAL);
+    const sk = stateKey(initial);
+    if (sk === gk) return { path: [], cost: 0 };
+
+    const queue = [initial.slice()];
+    let qh = 0;
+    const visited = new Set([sk]);
+    const parent = new Map();
+
+    while (qh < queue.length) {
+      const st = queue[qh++];
+      const stk = stateKey(st);
+      for (const { dir, next } of successors(st)) {
+        const nk = stateKey(next);
+        if (visited.has(nk)) continue;
+        visited.add(nk);
+        parent.set(nk, { from: stk, dir });
+        if (nk === gk) {
+          const path = reconstructPathFromParent(parent, sk, nk);
+          if (!path) return null;
+          return { path, cost: path.length };
+        }
+        queue.push(next);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Depth-first search with parent pointers (no path.concat per edge — storing full
+   * paths made the browser freeze on long explorations).
+   */
+  function dfs(initial) {
+    if (!isValidPuzzleState(initial)) return null;
+    const gk = stateKey(GOAL);
+    const sk = stateKey(initial);
+    if (sk === gk) return { path: [], cost: 0 };
+
+    const stack = [initial.slice()];
+    const visited = new Set([sk]);
+    const parent = new Map();
+    const order = ["U", "D", "L", "R"];
+
+    while (stack.length) {
+      const st = stack.pop();
+      const stk = stateKey(st);
+      const succ = successors(st);
+      succ.sort((a, b) => order.indexOf(b.dir) - order.indexOf(a.dir));
+      for (const { dir, next } of succ) {
+        const nk = stateKey(next);
+        if (visited.has(nk)) continue;
+        visited.add(nk);
+        parent.set(nk, { from: stk, dir });
+        if (nk === gk) {
+          const path = reconstructPathFromParent(parent, sk, nk);
+          if (!path) return null;
+          return { path, cost: path.length };
+        }
+        stack.push(next);
+      }
+    }
+    return null;
+  }
+
+  function ucsLess(a, b) {
+    return a.cost < b.cost || (a.cost === b.cost && a.tie < b.tie);
+  }
+
+  const ucsHeap = {
+    a: [],
+    push(node) {
+      const arr = this.a;
+      arr.push(node);
+      let i = arr.length - 1;
+      while (i > 0) {
+        const p = (i - 1) >> 1;
+        if (ucsLess(node, arr[p])) {
+          arr[i] = arr[p];
+          i = p;
+        } else break;
+      }
+      arr[i] = node;
+    },
+    pop() {
+      const arr = this.a;
+      if (arr.length === 0) return undefined;
+      if (arr.length === 1) return arr.pop();
+      const top = arr[0];
+      const last = arr.pop();
+      arr[0] = last;
+      let i = 0;
+      const n = arr.length;
+      for (;;) {
+        let l = i * 2 + 1;
+        let r = l + 1;
+        let sm = i;
+        if (l < n && ucsLess(arr[l], arr[sm])) sm = l;
+        if (r < n && ucsLess(arr[r], arr[sm])) sm = r;
+        if (sm === i) break;
+        [arr[i], arr[sm]] = [arr[sm], arr[i]];
+        i = sm;
+      }
+      return top;
+    },
+    get length() {
+      return this.a.length;
+    },
+  };
+
+  /** UCS with parent pointers (no path.concat on each heap push). */
+  function ucs(initial) {
+    if (!isValidPuzzleState(initial)) return null;
+    const gk = stateKey(GOAL);
+    const startKey = stateKey(initial);
+    if (startKey === gk) return { path: [], cost: 0 };
+
+    let counter = 0;
+    ucsHeap.a = [];
+    ucsHeap.push({ cost: 0, tie: counter, st: initial.slice(), sk: startKey });
+    const bestCost = {};
+    bestCost[startKey] = 0;
+    const parent = new Map();
+    parent.set(startKey, null);
+
+    while (ucsHeap.length) {
+      const node = ucsHeap.pop();
+      if (!node) break;
+      const { cost, st, sk } = node;
+      if (cost > (bestCost[sk] ?? Infinity)) continue;
+      if (sk === gk) {
+        const path = reconstructPathFromParent(parent, startKey, gk);
+        if (!path) return null;
+        return { path, cost: path.length };
+      }
+      for (const { dir, next } of successors(st)) {
+        const nk = stateKey(next);
+        const newCost = cost + 1;
+        if (newCost >= (bestCost[nk] ?? Infinity)) continue;
+        bestCost[nk] = newCost;
+        parent.set(nk, { from: sk, dir });
+        counter++;
+        ucsHeap.push({
+          cost: newCost,
+          tie: counter,
+          st: next,
+          sk: nk,
+        });
+      }
+    }
+    return null;
+  }
+
+  function applyPathStep(s, dir) {
+    if (!VALID_DIRS.has(dir)) return null;
+    const bi = blankIndex(s);
+    if (bi < 0) return null;
+    const r = (bi / 3) | 0;
+    const c = bi % 3;
+    let ti = -1;
+    if (dir === "U" && r > 0) ti = bi - 3;
+    else if (dir === "D" && r < 2) ti = bi + 3;
+    else if (dir === "L" && c > 0) ti = bi - 1;
+    else if (dir === "R" && c < 2) ti = bi + 1;
+    if (ti < 0) return null;
+    return cloneSwap(s, bi, ti);
+  }
+
+  function pulsePanel() {
+    vizWrap.classList.remove("panel-pulse");
+    void vizWrap.offsetWidth;
+    vizWrap.classList.add("panel-pulse");
+  }
+
+  function setReadout(pathList, costSoFar) {
+    if (!pathList.length) {
+      pathReadout.textContent = "(empty — already at goal or not started)";
+    } else {
+      pathReadout.textContent = pathList
+        .map((d) => "blank " + (DIR_NAMES[d] || String(d)))
+        .join(" → ");
+    }
+    const c =
+      typeof costSoFar === "number" && Number.isFinite(costSoFar)
+        ? costSoFar
+        : pathList.length;
+    costReadout.textContent = String(c);
+  }
+
+  function clearError() {
+    errorEl.textContent = "";
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+  }
+
+  function stopAnim() {
+    if (animTimer) {
+      clearTimeout(animTimer);
+      animTimer = null;
+    }
+  }
+
+  function clearSearchSchedule() {
+    stopAnim();
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+      searchTimer = null;
+    }
+  }
+
+  function setBusy(busy) {
+    ["btnBfs", "btnDfs", "btnUcs", "btnRand", "btnSlideExample", "btnPlay"].forEach((id) => {
+      document.getElementById(id).disabled = busy;
+    });
+    const stopBtn = document.getElementById("btnStopSolve");
+    if (stopBtn) {
+      stopBtn.hidden = !busy;
+      stopBtn.disabled = !busy;
+    }
+  }
+
+  function stopSolving() {
+    solveAnimCancelled = true;
+    clearSearchSchedule();
+    setBusy(false);
+    pathReadout.textContent = "Stopped — search or playback was cancelled.";
+    clearError();
+  }
+
+  function updatePlayBanner() {
+    if (!playMode) {
+      playBanner.hidden = true;
+      playBanner.textContent = "";
+      playBanner.classList.remove("play-banner--lose");
+      return;
+    }
+    const remaining = Math.max(0, playMaxMoves - playMovesUsed);
+    playBanner.hidden = false;
+    playBanner.classList.remove("play-banner--lose");
+    playBanner.innerHTML =
+      "You have <strong>at most " +
+      playMaxMoves +
+      " moves</strong> to reach the goal " +
+      "(optimal: " +
+      playOptimal +
+      "). " +
+      "<strong>" +
+      remaining +
+      "</strong> left.";
+  }
+
+  function exitPlayMode() {
+    playMode = false;
+    playMovesUsed = 0;
+    playMaxMoves = 0;
+    playOptimal = 0;
+    updatePlayBanner();
+    render();
+  }
+
+  function tryPlayMove(dir) {
+    if (!playMode) return;
+    const next = applyPathStep(state, dir);
+    if (!next) return;
+    const prevState = state.slice();
+    state = next;
+    playMovesUsed++;
+    pulsePanel();
+    render(prevState);
+
+    if (isGoal(state)) {
+      playMode = false;
+      updatePlayBanner();
+      render();
+      showWinAnimation();
+      setReadout([], playMovesUsed);
+      costReadout.textContent = String(playMovesUsed);
+      return;
+    }
+
+    if (playMovesUsed >= playMaxMoves) {
+      playBanner.classList.add("play-banner--lose");
+      playBanner.hidden = false;
+      playBanner.innerHTML =
+        "Out of moves — the puzzle is not solved. Press <strong>Play game yourself</strong> or <strong>Randomize state</strong> to try again.";
+      playMode = false;
+      render();
+      return;
+    }
+    updatePlayBanner();
+  }
+
+  /** Manhattan distance on the 3×3 grid between cell indices 0–8. */
+  function manhattanCellIndex(i, j) {
+    const ir = Math.floor(i / 3);
+    const ic = i % 3;
+    const jr = Math.floor(j / 3);
+    const jc = j % 3;
+    return Math.abs(ir - jr) + Math.abs(ic - jc);
+  }
+
+  function onTileClick(index) {
+    if (!playMode) return;
+    const bi = blankIndex(state);
+    if (index === bi) return;
+    if (manhattanCellIndex(index, bi) !== 1) return;
+    const r = Math.floor(bi / 3);
+    const c = bi % 3;
+    const ir = Math.floor(index / 3);
+    const ic = index % 3;
+    const dr = ir - r;
+    const dc = ic - c;
+    let dir;
+    if (dr === -1) dir = "U";
+    else if (dr === 1) dir = "D";
+    else if (dc === -1) dir = "L";
+    else dir = "R";
+    tryPlayMove(dir);
+  }
+
+  /**
+   * @param {number[]|undefined} prevState — if the board just changed from this state, FLIP-animate tiles.
+   */
+  function render(prevState) {
+    let oldRects = null;
+    if (prevState && prevState.length === 9 && puzzleGrid.children.length === 9) {
+      oldRects = new Map();
+      for (let i = 0; i < 9; i++) {
+        const el = puzzleGrid.children[i];
+        oldRects.set(prevState[i], el.getBoundingClientRect());
+      }
+    }
+
+    puzzleGrid.innerHTML = "";
+    const bi = blankIndex(state);
+    state.forEach((v, idx) => {
+      const cell = document.createElement("div");
+      cell.className = "tile";
+      cell.setAttribute("role", "gridcell");
+      cell.dataset.value = String(v);
+      if (v === 0) {
+        cell.classList.add("tile--blank");
+        cell.textContent = "";
+        cell.setAttribute("aria-label", "Blank");
+      } else {
+        cell.textContent = String(v);
+        if (!tileColors[v]) {
+          tileColors[v] =
+            "linear-gradient(145deg, hsl(200, 55%, 48%) 0%, hsl(220, 50%, 32%) 100%)";
+        }
+        cell.style.background = tileColors[v];
+        cell.setAttribute("aria-label", "Tile " + v);
+      }
+      if (playMode) {
+        const adj = manhattanCellIndex(idx, bi) === 1 && v !== 0;
+        if (adj) {
+          cell.classList.add("tile--playable");
+          cell.tabIndex = 0;
+          cell.addEventListener("click", () => onTileClick(idx));
+          cell.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onTileClick(idx);
+            }
+          });
+        } else {
+          cell.classList.add("tile--blocked");
+        }
+      } else {
+        cell.classList.add("tile--blocked");
+      }
+      puzzleGrid.appendChild(cell);
+    });
+
+    if (oldRects) {
+      for (let i = 0; i < 9; i++) {
+        const v = state[i];
+        const el = puzzleGrid.children[i];
+        const nr = el.getBoundingClientRect();
+        const or = oldRects.get(v);
+        if (!or) continue;
+        const dx = or.left - nr.left;
+        const dy = or.top - nr.top;
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+        el.classList.add("tile--anim-skip");
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.classList.remove("tile--anim-skip");
+            el.style.transform = "translate(0, 0)";
+          });
+        });
+      }
+    }
+
+    if (playMode) {
+      puzzleGrid.classList.remove("puzzle-grid--win");
+    }
+  }
+
+  function showWinAnimation() {
+    puzzleGrid.classList.add("puzzle-grid--win");
+    winSparkles.innerHTML = "";
+    for (let i = 0; i < 24; i++) {
+      const sp = document.createElement("span");
+      sp.className = "sparkle";
+      const ang = (Math.PI * 2 * i) / 24;
+      const dist = 80 + Math.random() * 60;
+      sp.style.setProperty("--dx", Math.cos(ang) * dist + "px");
+      sp.style.setProperty("--dy", Math.sin(ang) * dist + "px");
+      sp.style.left = "50%";
+      sp.style.top = "50%";
+      sp.style.animationDelay = (i * 0.03) + "s";
+      winSparkles.appendChild(sp);
+    }
+    winOverlay.classList.add("is-visible");
+    winOverlay.setAttribute("aria-hidden", "false");
+  }
+
+  function hideWinOverlay() {
+    winOverlay.classList.remove("is-visible");
+    winOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  winBackdrop.addEventListener("click", hideWinOverlay);
+  document.addEventListener("keydown", (e) => {
+    if (winOverlay.classList.contains("is-visible") && (e.key === "Escape" || e.key === "Enter")) {
+      hideWinOverlay();
+      return;
+    }
+    if (!playMode) return;
+    const map = { ArrowUp: "U", ArrowDown: "D", ArrowLeft: "L", ArrowRight: "R" };
+    const d = map[e.key];
+    if (d) {
+      e.preventDefault();
+      tryPlayMove(d);
+    }
+  });
+
+  function animatePath(path) {
+    clearSearchSchedule();
+    solveAnimCancelled = false;
+    const raw = Array.isArray(path) ? path : [];
+    const steps = raw.filter((d) => VALID_DIRS.has(d));
+    if (raw.length && steps.length !== raw.length) {
+      showError("Path contained invalid moves; only valid steps were kept.");
+    }
+    let i = 0;
+    let costSoFar = 0;
+    const pathSoFar = [];
+
+    function step() {
+      if (solveAnimCancelled) {
+        setBusy(false);
+        animTimer = null;
+        return;
+      }
+      if (i >= steps.length) {
+        setReadout(pathSoFar, costSoFar);
+        setBusy(false);
+        animTimer = null;
+        render();
+        return;
+      }
+      const dir = steps[i];
+      const prevState = state.slice();
+      const next = applyPathStep(state, dir);
+      if (!next) {
+        showError("Animation step failed.");
+        setBusy(false);
+        return;
+      }
+      pulsePanel();
+      state = next;
+      pathSoFar.push(dir);
+      costSoFar++;
+      setReadout(pathSoFar, costSoFar);
+      render(prevState);
+      i++;
+      animTimer = setTimeout(step, STEP_MS);
+    }
+
+    pathReadout.textContent = "Running…";
+    costReadout.textContent = "0";
+    setBusy(true);
+    step();
+  }
+
+  function runSearch(name, fn) {
+    clearError();
+    hideWinOverlay();
+    exitPlayMode();
+    if (isGoal(state)) {
+      showError("Already at goal. Randomize or load an example first.");
+      setReadout([], 0);
+      render();
+      return;
+    }
+    if (!isValidPuzzleState(state)) {
+      showError("Internal error: invalid board state. Use Randomize state.");
+      setBusy(false);
+      return;
+    }
+    solveAnimCancelled = false;
+    clearSearchSchedule();
+    setBusy(true);
+    pathReadout.textContent = "Searching…";
+    costReadout.textContent = "—";
+
+    searchTimer = setTimeout(() => {
+      searchTimer = null;
+      if (solveAnimCancelled) {
+        setBusy(false);
+        return;
+      }
+      let result;
+      try {
+        result = fn(state);
+      } catch (err) {
+        showError(name + " failed: " + (err && err.message ? err.message : String(err)));
+        setBusy(false);
+        return;
+      }
+      if (solveAnimCancelled) {
+        setBusy(false);
+        return;
+      }
+      if (!result || !Array.isArray(result.path)) {
+        showError(name + " found no solution (or path could not be reconstructed).");
+        setBusy(false);
+        return;
+      }
+      const plen = result.path.length;
+      const cost =
+        typeof result.cost === "number" && Number.isFinite(result.cost)
+          ? result.cost
+          : plen;
+      const maxAnim = 120;
+      if (plen > maxAnim) {
+        showError(
+          name +
+            " path has " +
+            plen +
+            " moves — showing first " +
+            maxAnim +
+            " in animation. Full cost: " +
+            cost +
+            "."
+        );
+        animatePath(result.path.slice(0, maxAnim));
+      } else {
+        animatePath(result.path);
+      }
+    }, 0);
+  }
+
+  function randomize() {
+    clearError();
+    solveAnimCancelled = true;
+    clearSearchSchedule();
+    hideWinOverlay();
+    exitPlayMode();
+    setBusy(false);
+    solveAnimCancelled = false;
+    buildTileColors();
+    state = randomWalkFromGoal(45, 95);
+    if (!isValidPuzzleState(state)) {
+      state = GOAL.slice();
+      showError("Randomize produced an invalid state; reset to the goal layout.");
+    }
+    setReadout([], 0);
+    render();
+  }
+
+  function loadSlideExample() {
+    clearError();
+    solveAnimCancelled = true;
+    clearSearchSchedule();
+    hideWinOverlay();
+    exitPlayMode();
+    setBusy(false);
+    solveAnimCancelled = false;
+    if (!isValidPuzzleState(SLIDE_EXAMPLE)) {
+      showError("Slide example data is invalid.");
+      return;
+    }
+    buildTileColors();
+    state = SLIDE_EXAMPLE.slice();
+    setReadout([], 0);
+    render();
+  }
+
+  function startPlayMode() {
+    clearError();
+    solveAnimCancelled = true;
+    clearSearchSchedule();
+    hideWinOverlay();
+    exitPlayMode();
+    setBusy(false);
+    solveAnimCancelled = false;
+    buildTileColors();
+    let sol = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      state = randomWalkFromGoal(45, 95);
+      if (!isValidPuzzleState(state)) continue;
+      sol = bfs(state);
+      if (sol && Array.isArray(sol.path)) break;
+      sol = null;
+    }
+    if (!sol) {
+      state = GOAL.slice();
+      showError(
+        "Could not prepare a solvable puzzle; reset to the goal layout. Press “Play game yourself” to try again."
+      );
+      render();
+      return;
+    }
+    playOptimal =
+      typeof sol.cost === "number" && Number.isFinite(sol.cost)
+        ? sol.cost
+        : sol.path.length;
+    const extra = 10 + Math.floor(Math.random() * 6);
+    playMaxMoves = playOptimal + extra;
+    playMovesUsed = 0;
+    playMode = true;
+    updatePlayBanner();
+    setReadout([], 0);
+    costReadout.textContent = "0";
+    render();
+  }
+
+  document.getElementById("btnBfs").addEventListener("click", () => runSearch("BFS", bfs));
+  document.getElementById("btnDfs").addEventListener("click", () => runSearch("DFS", dfs));
+  document.getElementById("btnUcs").addEventListener("click", () => runSearch("UCS", ucs));
+  document.getElementById("btnRand").addEventListener("click", randomize);
+  document.getElementById("btnSlideExample").addEventListener("click", loadSlideExample);
+  document.getElementById("btnPlay").addEventListener("click", startPlayMode);
+  document.getElementById("btnStopSolve").addEventListener("click", stopSolving);
+
+  buildTileColors();
+  randomize();
+})();
+  </script>
+
+  <footer class="site-footer">
+    <p>
+      © 2026 Pratyay Dutta, Department of Computer Science, University of California, Riverside.
+    </p>
+  </footer>
+</body>
+</html>

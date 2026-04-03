@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pac-Man — CS170 · Visual examples</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&family=Merriweather:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #07080d;
+      --bg-panel: rgba(18, 22, 35, 0.72);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      --text: #e8edf5;
+      --muted: #8b95a8;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.15);
+      --danger: #f472b6;
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+      --font-ui: "Outfit", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --pac-wall: #1a4fd9;
+      --pac-yellow: #ffeb3b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(56, 189, 248, 0.12), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 100% 100%, rgba(139, 92, 246, 0.08), transparent 45%),
+        linear-gradient(180deg, #0a0c12 0%, #07080d 40%, #05060a 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      z-index: 0;
+    }
+
+    body::after {
+      content: "01001110 01010011 01100111 00100000 01110011 01100101 01100001 01110010 01100011 01101000";
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: rgba(56, 189, 248, 0.12);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 0;
+      max-width: 95vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 52rem;
+      margin-inline: auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    .hero {
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.35rem, 3vw, 1.65rem);
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+      text-shadow: 0 2px 24px rgba(56, 189, 248, 0.35);
+      background: linear-gradient(135deg, #f0f4fc 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 38rem;
+    }
+
+    .layout {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 40rem) {
+      .layout {
+        grid-template-columns: 1fr 15rem;
+        align-items: start;
+      }
+    }
+
+    .viz-wrap {
+      border: 1px solid var(--border-glow);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      min-height: 15rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .viz-wrap.stack-flip-pulse {
+      animation: panelPulse 0.55s ease;
+    }
+
+    @keyframes panelPulse {
+      0%, 100% { box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+      40% {
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.55),
+          0 0 32px rgba(56, 189, 248, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      width: 100%;
+      max-width: 20rem;
+      perspective: 600px;
+    }
+
+    .pancake {
+      --bar-h: 1.65rem;
+      height: var(--bar-h);
+      min-height: var(--bar-h);
+      border-radius: 0.35rem;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.12) inset,
+        0 -2px 8px rgba(0, 0, 0, 0.25) inset;
+      transition: width 0.38s cubic-bezier(0.34, 1.2, 0.64, 1), transform 0.35s ease, filter 0.3s ease;
+      animation: barSettle 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .pancake-num {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: #fff;
+      text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.85),
+        0 0 12px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    @keyframes barSettle {
+      from {
+        opacity: 0.65;
+        transform: translateY(-6px) scale(0.96);
+        filter: brightness(1.15);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+      }
+    }
+
+    .pancake.flip-highlight {
+      animation: flipFlash 0.45s ease;
+    }
+
+    @keyframes flipFlash {
+      0%, 100% { filter: brightness(1); }
+      35% {
+        filter: brightness(1.35) saturate(1.2);
+        box-shadow:
+          0 4px 20px rgba(56, 189, 248, 0.55),
+          0 1px 0 rgba(255, 255, 255, 0.2) inset;
+      }
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .controls label.row {
+      font-size: 0.88rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .controls input[type="number"] {
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      border-radius: 0.45rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(10, 12, 20, 0.85);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .controls input[type="number"]:focus {
+      outline: none;
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .controls input[type="number"]:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.55rem 0.85rem;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: 0.02em;
+      border-radius: 0.5rem;
+      border: 1px solid transparent;
+      color: var(--text);
+      position: relative;
+      overflow: hidden;
+      transition:
+        transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+        box-shadow 0.22s ease,
+        filter 0.2s ease;
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.08) inset;
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.5),
+        0 0 24px rgba(56, 189, 248, 0.22),
+        0 1px 0 rgba(255, 255, 255, 0.12) inset;
+      filter: brightness(1.08);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(-1px);
+      transition-duration: 0.08s;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn--bfs {
+      background: linear-gradient(145deg, #1e3a5f 0%, #0f2744 100%);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    .btn--dfs {
+      background: linear-gradient(145deg, #3d2f5c 0%, #1f1538 100%);
+      border-color: rgba(167, 139, 250, 0.35);
+    }
+
+    .btn--ucs {
+      background: linear-gradient(145deg, #1a4d48 0%, #0d2f2c 100%);
+      border-color: rgba(45, 212, 191, 0.35);
+    }
+
+    .btn--rand {
+      background: linear-gradient(145deg, #2a2540 0%, #15101f 100%);
+      border-color: rgba(244, 114, 182, 0.35);
+    }
+
+    .section-label {
+      margin-top: 1.25rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .readout {
+      border: 1px solid var(--border-glow);
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      white-space: pre-wrap;
+      min-height: 4.5rem;
+      background: rgba(8, 10, 18, 0.75);
+      color: #c7d2e0;
+      box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.35);
+      line-height: 1.45;
+    }
+
+    #costReadout {
+      min-height: auto;
+    }
+
+    .error {
+      margin-top: 0.65rem;
+      font-size: 0.88rem;
+      color: var(--danger);
+      text-shadow: 0 0 20px rgba(244, 114, 182, 0.35);
+    }
+
+    /* —— Pac-Man section —— */
+    .section-pac {
+      margin-top: 4rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border-glow);
+    }
+
+    .shell--wide {
+      max-width: 56rem;
+    }
+
+    .formulation {
+      margin-top: 1rem;
+      padding: 1rem 1.1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(8, 10, 18, 0.55);
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .formulation strong {
+      color: #a5b4fc;
+      font-weight: 600;
+    }
+
+    .formulation code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #c7d2e0;
+    }
+
+    .pac-frame {
+      position: relative;
+      background: #000;
+      border: 2px solid var(--pac-wall);
+      border-radius: 0.25rem;
+      box-shadow: var(--shadow-lg), 0 0 40px rgba(26, 79, 217, 0.25);
+      padding: 0.35rem;
+      display: inline-block;
+      max-width: 100%;
+      --cell: min(1.65rem, 5vw);
+    }
+
+    .pac-grid {
+      display: grid;
+      gap: 0;
+      line-height: 0;
+      grid-template-columns: repeat(var(--pac-cols), var(--cell));
+      grid-auto-rows: var(--cell);
+    }
+
+    .pac-cell {
+      width: var(--cell);
+      height: var(--cell);
+      background: #000;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .pac-cell--wall {
+      background: #000;
+      box-shadow:
+        inset 0 0 0 1px var(--pac-wall);
+    }
+
+    .pac-cell--floor {
+      background: #000;
+      box-shadow: inset 0 0 0 1px rgba(26, 79, 217, 0.35);
+    }
+
+    .pac-dot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 22%;
+      height: 22%;
+      min-width: 3px;
+      min-height: 3px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+    }
+
+    .pac-player-wrap {
+      position: absolute;
+      pointer-events: none;
+      inset: 0.35rem;
+    }
+
+    .pac-player {
+      position: absolute;
+      width: var(--cell);
+      height: var(--cell);
+      margin-left: calc(var(--cell) * -0.5);
+      margin-top: calc(var(--cell) * -0.5);
+      left: 0;
+      top: 0;
+      transition: left 0.18s linear, top 0.18s linear;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
+    }
+
+    .pac-player-face {
+      width: 72%;
+      height: 72%;
+      border-radius: 50%;
+      background: var(--pac-yellow);
+      clip-path: polygon(50% 50%, 100% 15%, 100% 85%);
+      transform: rotate(0deg);
+      box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    .pac-player-face[data-dir="S"] { transform: rotate(90deg); }
+    .pac-player-face[data-dir="N"] { transform: rotate(-90deg); }
+    .pac-player-face[data-dir="W"] { transform: rotate(180deg); }
+    .pac-player-face[data-dir="E"] { transform: rotate(0deg); }
+
+    .pac-scorebar {
+      margin-top: 0.65rem;
+      font-family: "Merriweather", Georgia, serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--pac-yellow);
+      text-shadow: 0 0 12px rgba(255, 235, 59, 0.45);
+      letter-spacing: 0.04em;
+    }
+
+    .pac-viz-wrap {
+      border: 1px solid var(--border-glow);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pac-wrap-outer {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .pac-viz-wrap.pac-pulse {
+      animation: panelPulse 0.45s ease;
+    }
+
+    #pm-costReadout {
+      min-height: auto;
+    }
+
+    /* Maze editor modal */
+    .maze-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .maze-modal-overlay.is-open {
+      display: flex;
+    }
+
+    .maze-modal {
+      width: min(96vw, 52rem);
+      max-height: 90vh;
+      overflow: auto;
+      background: rgba(12, 16, 28, 0.97);
+      border: 1px solid var(--border-glow);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.35rem;
+      box-shadow: var(--shadow-lg), 0 0 60px rgba(56, 189, 248, 0.12);
+    }
+
+    .maze-modal h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .maze-modal-hint {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .maze-editor-dims {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      align-items: flex-end;
+      margin-bottom: 1rem;
+    }
+
+    .maze-editor-dims label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .maze-editor-dims input[type="number"] {
+      width: 5rem;
+      padding: 0.45rem 0.55rem;
+      border-radius: 0.4rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(10, 12, 20, 0.9);
+      color: var(--text);
+      font-family: var(--font-mono);
+    }
+
+    .maze-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      align-items: center;
+    }
+
+    .maze-tools span {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-right: 0.25rem;
+    }
+
+    .maze-tool {
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.45rem;
+      border: 1px solid var(--border-glow);
+      background: rgba(20, 26, 42, 0.9);
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .maze-tool:hover {
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+
+    .maze-tool.is-active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: 0 0 0 2px var(--accent-dim);
+    }
+
+    .maze-editor-grid-wrap {
+      overflow: auto;
+      max-height: 48vh;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border-glow);
+      border-radius: 0.45rem;
+      padding: 0.5rem;
+      background: #000;
+    }
+
+    .maze-editor-grid {
+      display: grid;
+      gap: 0;
+      --ed-cell: 22px;
+      grid-template-columns: repeat(var(--ed-cols), var(--ed-cell));
+      grid-auto-rows: var(--ed-cell);
+      width: max-content;
+    }
+
+    .maze-ed-cell {
+      width: var(--ed-cell);
+      height: var(--ed-cell);
+      box-sizing: border-box;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      font-family: var(--font-mono);
+      user-select: none;
+      border: 1px solid rgba(26, 79, 217, 0.45);
+    }
+
+    .maze-ed-cell--wall {
+      background: #050508;
+      box-shadow: inset 0 0 0 1px var(--pac-wall);
+    }
+
+    .maze-ed-cell--floor {
+      background: #0a0a10;
+    }
+
+    .maze-ed-cell--dot::after {
+      content: "";
+      width: 35%;
+      height: 35%;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .maze-ed-cell--start::after {
+      content: "P";
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--pac-yellow);
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+    }
+
+    .maze-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      justify-content: flex-end;
+    }
+
+    .maze-modal-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+      min-height: 1.25rem;
+    }
+
+    .btn--demo {
+      background: linear-gradient(145deg, #1a4d48 0%, #0d2f2c 100%);
+      border-color: rgba(45, 212, 191, 0.45);
+    }
+
+    .btn--create {
+      background: linear-gradient(145deg, #2a2540 0%, #15101f 100%);
+      border-color: rgba(244, 114, 182, 0.45);
+    }
+
+    .btn--resetpos {
+      background: linear-gradient(145deg, #1e3a5f 0%, #0f2744 100%);
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+
+    .site-footer {
+      position: relative;
+      z-index: 1;
+      margin-top: 3rem;
+      padding: 1.5rem 1rem 2rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(56, 189, 248, 0.12);
+    }
+
+    .site-footer p {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .site-nav {
+      position: relative;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      margin: 1rem auto 0;
+      max-width: 52rem;
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-glow);
+      background: rgba(18, 22, 35, 0.6);
+      color: var(--muted);
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .site-nav:hover {
+      color: var(--accent);
+      border-color: rgba(56, 189, 248, 0.45);
+      background: rgba(18, 22, 35, 0.85);
+    }
+  </style>
+</head>
+<body>
+  <a class="site-nav" href="/">← CS170 · Visual examples</a>
+  <section class="shell shell--wide section-pac" id="pacman-section">
+    <header class="hero">
+      <h1>Pac-Man — eat all dots (no ghosts)</h1>
+      <p>
+        Same search ideas: <strong style="color:#c7d2e0">BFS</strong> and <strong style="color:#c7d2e0">UCS</strong> minimize number of steps; <strong style="color:#c7d2e0">DFS</strong> finds some valid path.
+        Goal: every dot eaten. Each move (N/S/E/W) costs 1.
+      </p>
+    </header>
+
+    <div class="formulation">
+      <strong>(a) State space:</strong> <code>(x, y)</code> for Pac-Man and a boolean per dot (encoded as a bitmask). &nbsp;
+      <strong>(b) Actions:</strong> <code>N, S, E, W</code>. &nbsp;
+      <strong>(c) Transition:</strong> update position; if a dot is there and still “on,” clear it. &nbsp;
+      <strong>(d) Goal test:</strong> all dots cleared. &nbsp;
+      <strong>(e) Path cost:</strong> number of steps.
+    </div>
+
+    <div class="formulation" style="margin-top:1rem;">
+      <strong>Search code (generic):</strong>
+      The next script defines <code>PacManSearch</code> — pure BFS / DFS / UCS that take any parsed grid
+      (<code>walls</code>, <code>dotIndex</code>, dimensions, start cell, dot count). The UI script only
+      parses the maze, then calls <code>PacManSearch.bfs</code> (or <code>dfs</code> / <code>ucs</code>) when you press the run buttons.
+      A solvable maze will return a move list; an unsolvable layout returns no solution.
+    </div>
+
+    <div class="layout" style="margin-top:1.25rem;">
+      <div class="pac-wrap-outer">
+        <div id="pmVizWrap" class="pac-viz-wrap" aria-live="polite">
+          <div class="pac-frame" id="pacFrame">
+            <div id="pacGrid" class="pac-grid" style="--pac-cols: 1;"></div>
+            <div class="pac-player-wrap" id="pacPlayerWrap">
+              <div class="pac-player" id="pacPlayer">
+                <div class="pac-player-face" id="pacFace" data-dir="E"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pac-scorebar">SCORE: <span id="pmScore">0</span></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button type="button" class="btn btn--bfs" id="pm-btnBfs">Run BFS</button>
+        <button type="button" class="btn btn--dfs" id="pm-btnDfs">Run DFS</button>
+        <button type="button" class="btn btn--ucs" id="pm-btnUcs">Run UCS</button>
+        <button type="button" class="btn btn--create" id="pm-btnCreate">Create own maze</button>
+        <button type="button" class="btn btn--demo" id="pm-btnDemo">Demo maze</button>
+        <button type="button" class="btn btn--resetpos" id="pm-btnReset">Reset maze</button>
+      </div>
+    </div>
+
+    <div class="section-label">Path (moves)</div>
+    <div id="pm-pathReadout" class="readout">—</div>
+    <div class="section-label">Total cost (steps)</div>
+    <div id="pm-costReadout" class="readout">0</div>
+    <div id="pm-error" class="error" role="alert"></div>
+  </section>
+
+  <div id="mazeEditorOverlay" class="maze-modal-overlay" aria-hidden="true">
+    <div class="maze-modal" role="dialog" aria-modal="true" aria-labelledby="mazeEditorTitle">
+      <h2 id="mazeEditorTitle">Build your maze</h2>
+      <p class="maze-modal-hint">
+        Set width and height, then choose a tool and click cells. Outer border starts as walls; the interior is empty paths.
+        Place exactly one Pac-Man start (<strong style="color:var(--pac-yellow)">P</strong>), at least one dot, and connect paths with
+        <strong>Floor</strong> so Pac-Man can walk. Maximum <strong>20 dots</strong> for search in the browser.
+      </p>
+      <div class="maze-editor-dims">
+        <label>
+          Width (cells)
+          <input type="number" id="mazeEdW" min="5" max="24" value="10" />
+        </label>
+        <label>
+          Height (cells)
+          <input type="number" id="mazeEdH" min="5" max="18" value="5" />
+        </label>
+        <button type="button" class="btn btn--ucs" id="mazeEdBuildGrid" style="width:auto;padding:0.5rem 1rem;">Create / clear grid</button>
+      </div>
+      <div class="maze-tools">
+        <span>Paint with:</span>
+        <button type="button" class="maze-tool is-active" id="mazeToolWall" data-tool="wall">Wall</button>
+        <button type="button" class="maze-tool" id="mazeToolFloor" data-tool="floor">Floor</button>
+        <button type="button" class="maze-tool" id="mazeToolDot" data-tool="dot">Dot</button>
+        <button type="button" class="maze-tool" id="mazeToolStart" data-tool="start">Pac-Man start</button>
+      </div>
+      <div id="mazeEdError" class="maze-modal-error" role="alert"></div>
+      <div class="maze-editor-grid-wrap">
+        <div id="mazeEditorGrid" class="maze-editor-grid" style="--ed-cols: 1;"></div>
+      </div>
+      <div class="maze-modal-actions">
+        <button type="button" class="btn btn--rand" id="mazeEdCancel">Cancel</button>
+        <button type="button" class="btn btn--bfs" id="mazeEdApply">Apply maze</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic Pac-Man search: any maze described by walls, dotIndex, start, numDots -->
+  <script>
+(function () {
+  const DIRS = [
+    ["N", -1, 0],
+    ["S", 1, 0],
+    ["E", 0, 1],
+    ["W", 0, -1],
+  ];
+
+  function pacStateKey(row, col, mask) {
+    return row + "," + col + "," + mask;
+  }
+
+  /** Successors for state (row, col, mask). */
+  function pacSuccessors(walls, dotIndex, H, W, row, col, mask) {
+    const out = [];
+    for (const [name, dr, dc] of DIRS) {
+      const nr = row + dr;
+      const nc = col + dc;
+      if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
+      if (walls[nr][nc]) continue;
+      let newMask = mask;
+      const idx = dotIndex[nr][nc];
+      if (idx >= 0 && (mask & (1 << idx))) {
+        newMask = mask & ~(1 << idx);
+      }
+      out.push({ nr, nc, move: name, newMask });
+    }
+    return out;
+  }
+
+  /** All dot bits set (numDots should be &lt; 31 for bitwise ops in JS). */
+  function fullMaskForDots(numDots) {
+    if (numDots <= 0) return 0;
+    return (1 << numDots) - 1;
+  }
+
+  /**
+   * @param {boolean[][]} walls
+   * @param {number[][]} dotIndex -1 or dot id
+   * @returns {{ path: string[], cost: number } | null}
+   */
+  function bfs(walls, dotIndex, H, W, startR, startC, numDots) {
+    const startMask = fullMaskForDots(numDots);
+    if (startMask === 0) return { path: [], cost: 0 };
+    if (walls[startR][startC]) return null;
+
+    const queue = [{ row: startR, col: startC, mask: startMask, path: [] }];
+    const visited = new Set([pacStateKey(startR, startC, startMask)]);
+
+    while (queue.length) {
+      const { row, col, mask, path } = queue.shift();
+      if (mask === 0) {
+        return { path, cost: path.length };
+      }
+      for (const { nr, nc, move, newMask } of pacSuccessors(walls, dotIndex, H, W, row, col, mask)) {
+        const k = pacStateKey(nr, nc, newMask);
+        if (visited.has(k)) continue;
+        visited.add(k);
+        queue.push({ row: nr, col: nc, mask: newMask, path: path.concat(move) });
+      }
+    }
+    return null;
+  }
+
+  function dfs(walls, dotIndex, H, W, startR, startC, numDots) {
+    const startMask = fullMaskForDots(numDots);
+    if (startMask === 0) return { path: [], cost: 0 };
+    if (walls[startR][startC]) return null;
+
+    const stack = [{ row: startR, col: startC, mask: startMask, path: [] }];
+    const visited = new Set([pacStateKey(startR, startC, startMask)]);
+
+    while (stack.length) {
+      const { row, col, mask, path } = stack.pop();
+      if (mask === 0) {
+        return { path, cost: path.length };
+      }
+      const succ = pacSuccessors(walls, dotIndex, H, W, row, col, mask);
+      for (let i = succ.length - 1; i >= 0; i--) {
+        const { nr, nc, move, newMask } = succ[i];
+        const k = pacStateKey(nr, nc, newMask);
+        if (visited.has(k)) continue;
+        visited.add(k);
+        stack.push({ row: nr, col: nc, mask: newMask, path: path.concat(move) });
+      }
+    }
+    return null;
+  }
+
+  function ucsLess(a, b) {
+    return a.cost < b.cost || (a.cost === b.cost && a.tie < b.tie);
+  }
+
+  function createHeap() {
+    return {
+      a: [],
+      push(node) {
+        const arr = this.a;
+        arr.push(node);
+        let i = arr.length - 1;
+        while (i > 0) {
+          const p = (i - 1) >> 1;
+          if (ucsLess(node, arr[p])) {
+            arr[i] = arr[p];
+            i = p;
+          } else break;
+        }
+        arr[i] = node;
+      },
+      pop() {
+        const arr = this.a;
+        if (arr.length === 0) return undefined;
+        if (arr.length === 1) return arr.pop();
+        const top = arr[0];
+        const last = arr.pop();
+        arr[0] = last;
+        let i = 0;
+        const n = arr.length;
+        for (;;) {
+          const l = i * 2 + 1;
+          const r = l + 1;
+          let sm = i;
+          if (l < n && ucsLess(arr[l], arr[sm])) sm = l;
+          if (r < n && ucsLess(arr[r], arr[sm])) sm = r;
+          if (sm === i) break;
+          [arr[i], arr[sm]] = [arr[sm], arr[i]];
+          i = sm;
+        }
+        return top;
+      },
+      get length() {
+        return this.a.length;
+      },
+      reset() {
+        this.a = [];
+      },
+    };
+  }
+
+  const ucsHeap = createHeap();
+
+  function ucs(walls, dotIndex, H, W, startR, startC, numDots) {
+    const startMask = fullMaskForDots(numDots);
+    if (startMask === 0) return { path: [], cost: 0 };
+    if (walls[startR][startC]) return null;
+
+    let counter = 0;
+    ucsHeap.reset();
+    ucsHeap.push({
+      cost: 0,
+      tie: counter,
+      row: startR,
+      col: startC,
+      mask: startMask,
+      path: [],
+    });
+    const best = {};
+    best[pacStateKey(startR, startC, startMask)] = 0;
+
+    while (ucsHeap.length) {
+      const { cost, row, col, mask, path } = ucsHeap.pop();
+      const sk0 = pacStateKey(row, col, mask);
+      if (cost > (best[sk0] ?? Infinity)) continue;
+      if (mask === 0) {
+        return { path, cost };
+      }
+      for (const { nr, nc, move, newMask } of pacSuccessors(walls, dotIndex, H, W, row, col, mask)) {
+        const newCost = cost + 1;
+        const sk = pacStateKey(nr, nc, newMask);
+        if (newCost >= (best[sk] ?? Infinity)) continue;
+        best[sk] = newCost;
+        counter++;
+        ucsHeap.push({
+          cost: newCost,
+          tie: counter,
+          row: nr,
+          col: nc,
+          mask: newMask,
+          path: path.concat(move),
+        });
+      }
+    }
+    return null;
+  }
+
+  window.PacManSearch = { bfs, dfs, ucs, pacSuccessors, fullMaskForDots };
+})();
+  </script>
+
+  <script>
+(function () {
+  /** Default demo maze (also used by “Demo maze”). */
+  const DEMO_MAZE = [
+    "##########",
+    "#@o.o.o.o#",
+    "#.#.#.#.#",
+    "#o.o.o.o.#",
+    "##########",
+  ];
+
+  /** Current level layout; replaced when applying custom maze or loading demo. */
+  let activeMazeStrings = DEMO_MAZE.slice();
+
+  const pacGrid = document.getElementById("pacGrid");
+  const pacFrame = document.getElementById("pacFrame");
+  const pacPlayer = document.getElementById("pacPlayer");
+  const pacFace = document.getElementById("pacFace");
+  const pmVizWrap = document.getElementById("pmVizWrap");
+  const pmPathReadout = document.getElementById("pm-pathReadout");
+  const pmCostReadout = document.getElementById("pm-costReadout");
+  const pmError = document.getElementById("pm-error");
+  const pmScore = document.getElementById("pmScore");
+
+  const mazeEditorOverlay = document.getElementById("mazeEditorOverlay");
+  const mazeEditorGrid = document.getElementById("mazeEditorGrid");
+  const mazeEdW = document.getElementById("mazeEdW");
+  const mazeEdH = document.getElementById("mazeEdH");
+  const mazeEdError = document.getElementById("mazeEdError");
+
+  let H = 0;
+  let W = 0;
+  let walls = [];
+  let dotIndex = [];
+  let startR = 0;
+  let startC = 0;
+  let numDots = 0;
+
+  let pmMask = 0;
+  let pmRow = 0;
+  let pmCol = 0;
+  let pmAnimTimer = null;
+  const PM_STEP_MS = 220;
+
+  const MAX_DOTS = 20;
+
+  /** 2D char grid while modal is open. */
+  let editorGrid = null;
+  let editorTool = "wall";
+
+  function parseMaze() {
+    const RAW_MAZE = activeMazeStrings;
+    H = RAW_MAZE.length;
+    W = RAW_MAZE[0].length;
+    walls = [];
+    dotIndex = [];
+    for (let r = 0; r < H; r++) {
+      walls[r] = [];
+      dotIndex[r] = [];
+      for (let c = 0; c < W; c++) {
+        walls[r][c] = true;
+        dotIndex[r][c] = -1;
+      }
+    }
+    let di = 0;
+    for (let r = 0; r < H; r++) {
+      for (let c = 0; c < W; c++) {
+        const ch = RAW_MAZE[r][c];
+        if (ch === "#") {
+          walls[r][c] = true;
+        } else {
+          walls[r][c] = false;
+          if (ch === "@") {
+            startR = r;
+            startC = c;
+          }
+          if (ch === "o") {
+            dotIndex[r][c] = di;
+            di++;
+          }
+        }
+      }
+    }
+    numDots = di;
+  }
+
+  function cellSizePx() {
+    const sample = pacGrid.querySelector(".pac-cell");
+    if (sample) {
+      const w = sample.getBoundingClientRect().width;
+      if (w > 0 && Number.isFinite(w)) return w;
+    }
+    const cs = getComputedStyle(pacFrame).getPropertyValue("--cell").trim();
+    const v = parseFloat(cs);
+    return Number.isFinite(v) ? v : 26;
+  }
+
+  function placePlayer() {
+    const cell = cellSizePx();
+    pacPlayer.style.left = (pmCol + 0.5) * cell + "px";
+    pacPlayer.style.top = (pmRow + 0.5) * cell + "px";
+  }
+
+  function renderPacGrid() {
+    pacGrid.style.setProperty("--pac-cols", String(W));
+    pacGrid.innerHTML = "";
+    for (let r = 0; r < H; r++) {
+      for (let c = 0; c < W; c++) {
+        const cell = document.createElement("div");
+        cell.className = walls[r][c] ? "pac-cell pac-cell--wall" : "pac-cell pac-cell--floor";
+        cell.dataset.r = String(r);
+        cell.dataset.c = String(c);
+        if (!walls[r][c]) {
+          const idx = dotIndex[r][c];
+          if (idx >= 0 && (pmMask & (1 << idx))) {
+            const dot = document.createElement("span");
+            dot.className = "pac-dot";
+            cell.appendChild(dot);
+          }
+        }
+        pacGrid.appendChild(cell);
+      }
+    }
+    placePlayer();
+    requestAnimationFrame(() => placePlayer());
+  }
+
+  function updateDotsOnly() {
+    const cells = pacGrid.querySelectorAll(".pac-cell--floor");
+    cells.forEach((cell) => {
+      const r = +cell.dataset.r;
+      const c = +cell.dataset.c;
+      const idx = dotIndex[r][c];
+      const existing = cell.querySelector(".pac-dot");
+      const shouldShow = idx >= 0 && (pmMask & (1 << idx));
+      if (shouldShow && !existing) {
+        const dot = document.createElement("span");
+        dot.className = "pac-dot";
+        cell.appendChild(dot);
+      } else if (!shouldShow && existing) {
+        existing.remove();
+      }
+    });
+  }
+
+  function scoreFromMask() {
+    let eaten = 0;
+    for (let i = 0; i < numDots; i++) {
+      if (!(pmMask & (1 << i))) eaten++;
+    }
+    return eaten * 10;
+  }
+
+  function pmSetReadout(moves, steps) {
+    if (!moves.length) {
+      pmPathReadout.textContent = "(no moves yet)";
+    } else {
+      pmPathReadout.textContent = moves.join(" → ");
+    }
+    pmCostReadout.textContent = String(steps);
+    pmScore.textContent = String(scoreFromMask());
+  }
+
+  function pmClearError() {
+    pmError.textContent = "";
+  }
+
+  function pmShowError(msg) {
+    pmError.textContent = msg;
+  }
+
+  function pmSetBusy(busy) {
+    [
+      "pm-btnBfs",
+      "pm-btnDfs",
+      "pm-btnUcs",
+      "pm-btnReset",
+      "pm-btnCreate",
+      "pm-btnDemo",
+    ].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = busy;
+    });
+  }
+
+  function stringsToEditorGrid(strs) {
+    const h = strs.length;
+    const w = strs[0].length;
+    const g = [];
+    for (let r = 0; r < h; r++) {
+      g[r] = [];
+      for (let c = 0; c < w; c++) {
+        g[r][c] = strs[r][c];
+      }
+    }
+    return g;
+  }
+
+  function buildEmptyEditorGrid(w, h) {
+    const g = [];
+    for (let r = 0; r < h; r++) {
+      g[r] = [];
+      for (let c = 0; c < w; c++) {
+        if (r === 0 || r === h - 1 || c === 0 || c === w - 1) {
+          g[r][c] = "#";
+        } else {
+          g[r][c] = ".";
+        }
+      }
+    }
+    return g;
+  }
+
+  function renderEditorGrid() {
+    if (!editorGrid || !editorGrid.length) return;
+    const eh = editorGrid.length;
+    const ew = editorGrid[0].length;
+    mazeEditorGrid.style.setProperty("--ed-cols", String(ew));
+    mazeEditorGrid.innerHTML = "";
+    for (let r = 0; r < eh; r++) {
+      for (let c = 0; c < ew; c++) {
+        const ch = editorGrid[r][c];
+        const div = document.createElement("div");
+        div.className = "maze-ed-cell";
+        div.dataset.r = String(r);
+        div.dataset.c = String(c);
+        if (ch === "#") {
+          div.classList.add("maze-ed-cell--wall");
+        } else if (ch === "o") {
+          div.classList.add("maze-ed-cell--floor", "maze-ed-cell--dot");
+        } else if (ch === "@") {
+          div.classList.add("maze-ed-cell--floor", "maze-ed-cell--start");
+        } else {
+          div.classList.add("maze-ed-cell--floor");
+        }
+        div.addEventListener("click", () => {
+          applyEditorPaint(+div.dataset.r, +div.dataset.c);
+          renderEditorGrid();
+          mazeEdError.textContent = "";
+        });
+        mazeEditorGrid.appendChild(div);
+      }
+    }
+  }
+
+  function applyEditorPaint(r, c) {
+    if (!editorGrid) return;
+    const eh = editorGrid.length;
+    const ew = editorGrid[0].length;
+    if (r < 0 || r >= eh || c < 0 || c >= ew) return;
+
+    if (editorTool === "wall") {
+      editorGrid[r][c] = "#";
+      return;
+    }
+    if (editorTool === "floor") {
+      editorGrid[r][c] = ".";
+      return;
+    }
+    if (editorTool === "dot") {
+      if (editorGrid[r][c] === "#") return;
+      editorGrid[r][c] = "o";
+      return;
+    }
+    if (editorTool === "start") {
+      if (editorGrid[r][c] === "#") return;
+      for (let rr = 0; rr < eh; rr++) {
+        for (let cc = 0; cc < ew; cc++) {
+          if (editorGrid[rr][cc] === "@") {
+            editorGrid[rr][cc] = ".";
+          }
+        }
+      }
+      editorGrid[r][c] = "@";
+    }
+  }
+
+  function editorGridToStrings() {
+    if (!editorGrid) return [];
+    return editorGrid.map((row) => row.join(""));
+  }
+
+  function validateEditorMaze() {
+    const strs = editorGridToStrings();
+    let starts = 0;
+    let dots = 0;
+    for (let r = 0; r < strs.length; r++) {
+      for (let c = 0; c < strs[r].length; c++) {
+        const ch = strs[r][c];
+        if (ch === "@") starts++;
+        if (ch === "o") dots++;
+      }
+    }
+    if (starts !== 1) {
+      return "Place exactly one Pac-Man start (not on a wall).";
+    }
+    if (dots < 1) {
+      return "Place at least one dot.";
+    }
+    if (dots > MAX_DOTS) {
+      return "Too many dots (max " + MAX_DOTS + " for this demo).";
+    }
+    for (let r = 0; r < strs.length; r++) {
+      if (strs[r].length !== strs[0].length) {
+        return "All rows must have the same width.";
+      }
+    }
+    return null;
+  }
+
+  function setEditorTool(tool) {
+    editorTool = tool;
+    document.querySelectorAll(".maze-tool").forEach((b) => {
+      b.classList.toggle("is-active", b.getAttribute("data-tool") === tool);
+    });
+  }
+
+  function openMazeEditor() {
+    mazeEdError.textContent = "";
+    mazeEdW.value = String(W);
+    mazeEdH.value = String(H);
+    editorGrid = stringsToEditorGrid(activeMazeStrings.slice());
+    renderEditorGrid();
+    setEditorTool(editorTool);
+    mazeEditorOverlay.classList.add("is-open");
+    mazeEditorOverlay.setAttribute("aria-hidden", "false");
+  }
+
+  function closeMazeEditor() {
+    mazeEditorOverlay.classList.remove("is-open");
+    mazeEditorOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  function applyMazeFromEditor() {
+    const err = validateEditorMaze();
+    if (err) {
+      mazeEdError.textContent = err;
+      return;
+    }
+    activeMazeStrings = editorGridToStrings();
+    parseMaze();
+    pmResetPositionsOnly();
+    closeMazeEditor();
+    pmClearError();
+  }
+
+  function loadDemoMaze() {
+    pmStopAnim();
+    pmClearError();
+    pmSetBusy(false);
+    activeMazeStrings = DEMO_MAZE.slice();
+    parseMaze();
+    pmResetPositionsOnly();
+  }
+
+  function pmResetPositionsOnly() {
+    pmStopAnim();
+    pmClearError();
+    pmSetBusy(false);
+    pmRow = startR;
+    pmCol = startC;
+    pmMask = numDots > 0 ? (1 << numDots) - 1 : 0;
+    renderPacGrid();
+    pacFace.setAttribute("data-dir", "E");
+    pmSetReadout([], 0);
+    pmScore.textContent = "0";
+  }
+
+  function pmPulse() {
+    pmVizWrap.classList.remove("pac-pulse");
+    void pmVizWrap.offsetWidth;
+    pmVizWrap.classList.add("pac-pulse");
+  }
+
+  function pmStopAnim() {
+    if (pmAnimTimer) {
+      clearTimeout(pmAnimTimer);
+      pmAnimTimer = null;
+    }
+  }
+
+  function setFaceForMove(prevR, prevC, newR, newC) {
+    const dr = newR - prevR;
+    const dc = newC - prevC;
+    let d = "E";
+    if (dr === -1) d = "N";
+    else if (dr === 1) d = "S";
+    else if (dc === -1) d = "W";
+    else if (dc === 1) d = "E";
+    pacFace.setAttribute("data-dir", d);
+  }
+
+  function pmAnimatePath(path) {
+    pmStopAnim();
+    let i = 0;
+    let steps = 0;
+    const movesSoFar = [];
+    let prevR = pmRow;
+    let prevC = pmCol;
+
+    function step() {
+      if (i >= path.length) {
+        pmSetReadout(movesSoFar, steps);
+        pmSetBusy(false);
+        pmAnimTimer = null;
+        return;
+      }
+      const mv = path[i];
+      let dr = 0;
+      let dc = 0;
+      if (mv === "N") dr = -1;
+      else if (mv === "S") dr = 1;
+      else if (mv === "E") dc = 1;
+      else if (mv === "W") dc = -1;
+      const nr = pmRow + dr;
+      const nc = pmCol + dc;
+      setFaceForMove(pmRow, pmCol, nr, nc);
+      pmRow = nr;
+      pmCol = nc;
+      const idx = dotIndex[pmRow][pmCol];
+      if (idx >= 0 && (pmMask & (1 << idx))) {
+        pmMask &= ~(1 << idx);
+      }
+      movesSoFar.push(mv);
+      steps++;
+      pmPulse();
+      placePlayer();
+      updateDotsOnly();
+      pmSetReadout(movesSoFar, steps);
+      i++;
+      pmAnimTimer = setTimeout(step, PM_STEP_MS);
+    }
+
+    pmPathReadout.textContent = "Starting…";
+    pmCostReadout.textContent = "0";
+    pmScore.textContent = "0";
+    pmSetBusy(true);
+    step();
+  }
+
+  /**
+   * Runs generic search from maze start (PacManSearch.*) on the current parsed maze.
+   * Resets the board to start + all dots so the animation matches the computed path.
+   */
+  function pmRunSearch(name, searchFn) {
+    pmClearError();
+    if (numDots === 0) {
+      pmShowError("No dots in maze.");
+      return;
+    }
+    if (walls[startR][startC]) {
+      pmShowError("Invalid maze: Pac-Man start must be on an empty path (not a wall).");
+      return;
+    }
+    pmResetPositionsOnly();
+    const result = searchFn();
+    if (!result) {
+      pmShowError(
+        name +
+          " found no solution. This maze may be unsolvable (dots or start disconnected). Edit the maze or try Demo maze."
+      );
+      return;
+    }
+    pmAnimatePath(result.path);
+  }
+
+  window.addEventListener("resize", () => {
+    placePlayer();
+  });
+
+  document.getElementById("pm-btnBfs").addEventListener("click", () =>
+    pmRunSearch("BFS", () => window.PacManSearch.bfs(walls, dotIndex, H, W, startR, startC, numDots))
+  );
+  document.getElementById("pm-btnDfs").addEventListener("click", () =>
+    pmRunSearch("DFS", () => window.PacManSearch.dfs(walls, dotIndex, H, W, startR, startC, numDots))
+  );
+  document.getElementById("pm-btnUcs").addEventListener("click", () =>
+    pmRunSearch("UCS", () => window.PacManSearch.ucs(walls, dotIndex, H, W, startR, startC, numDots))
+  );
+  document.getElementById("pm-btnReset").addEventListener("click", pmResetPositionsOnly);
+  document.getElementById("pm-btnDemo").addEventListener("click", loadDemoMaze);
+  document.getElementById("pm-btnCreate").addEventListener("click", openMazeEditor);
+
+  document.getElementById("mazeEdBuildGrid").addEventListener("click", () => {
+    mazeEdError.textContent = "";
+    const w = Math.min(24, Math.max(5, parseInt(mazeEdW.value, 10) || 10));
+    const h = Math.min(18, Math.max(5, parseInt(mazeEdH.value, 10) || 5));
+    mazeEdW.value = String(w);
+    mazeEdH.value = String(h);
+    editorGrid = buildEmptyEditorGrid(w, h);
+    renderEditorGrid();
+  });
+
+  document.querySelectorAll(".maze-tool").forEach((btn) => {
+    btn.addEventListener("click", () => setEditorTool(btn.getAttribute("data-tool")));
+  });
+
+  document.getElementById("mazeEdApply").addEventListener("click", applyMazeFromEditor);
+  document.getElementById("mazeEdCancel").addEventListener("click", closeMazeEditor);
+
+  mazeEditorOverlay.addEventListener("click", (e) => {
+    if (e.target === mazeEditorOverlay) closeMazeEditor();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && mazeEditorOverlay.classList.contains("is-open")) {
+      closeMazeEditor();
+    }
+  });
+
+  loadDemoMaze();
+})();
+  </script>
+
+  <footer class="site-footer">
+    <p>
+      © 2026 Pratyay Dutta, Department of Computer Science, University of California, Riverside.
+    </p>
+  </footer>
+</body>
+</html>
